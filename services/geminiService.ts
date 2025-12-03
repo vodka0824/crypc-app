@@ -126,7 +126,10 @@ export const generateSmartBuild = async (
       }
     });
 
-    const jsonText = response.text || "{}";
+    let jsonText = response.text || "{}";
+    // Remove Markdown code block syntax if present
+    jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    
     return JSON.parse(jsonText);
   } catch (error) {
     console.error("Smart Build Error:", error);
