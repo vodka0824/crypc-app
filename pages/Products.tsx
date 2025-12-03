@@ -1,0 +1,509 @@
+
+import React, { useState, useMemo, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Category, Product, ProductSpecs } from '../types';
+import { Filter, ShoppingBag, X, ChevronDown, ChevronRight, SlidersHorizontal, Check, Home, Cpu, CircuitBoard, CreditCard, HardDrive, Monitor, Disc, Fan, Box, Layers, Wind, Search } from 'lucide-react';
+import { categoryFilters, categoryDisplayMap } from '../data/mockData';
+import { useProducts } from '../contexts/ProductContext';
+
+interface ProductsProps {
+  addToCart: (product: Product) => void;
+}
+
+const Products: React.FC<ProductsProps> = ({ addToCart }) => {
+  const { products: allProducts } = useProducts(); // Use context instead of mockProducts
+  const [selectedCategory, setSelectedCategory] = useState<Category | 'All'>('All');
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [sortOption, setSortOption] = useState<string>('default');
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Tree state: which nodes are expanded
+  const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
+
+  // Initialize: expand the selected category if it's not All
+  useEffect(() => {
+    if (selectedCategory !== 'All') {
+      setExpandedNodes(prev => ({ ...prev, [selectedCategory]: true }));
+    }
+  }, [selectedCategory]);
+
+  const toggleNode = (nodeId: string) => {
+    setExpandedNodes(prev => ({ ...prev, [nodeId]: !prev[nodeId] }));
+  };
+
+  // --- Core Logic: Smart Options (Cascading Filters) ---
+  const getSmartOptions = (
+    category: Category, 
+    filterKey: keyof ProductSpecs
+  ) => {
+    // 1. Start with all products in this category (using context data)
+    let relevantProducts = allProducts.filter(p => p.category === category);
+    
+    // Filter by search query
+    if (searchQuery.trim()) {
+       const query = searchQuery.toLowerCase();
+       relevantProducts = relevantProducts.filter(p => 
+           p.name.toLowerCase().includes(query) ||
+           p.description.toLowerCase().includes(query)
+       );
+    }
+
+    // 2. Filter these products by *other* active filters to enforce dependencies
+    Object.entries(activeFilters).forEach(([key, selectedValues]: [string, string[]]) => {
+      if (key !== filterKey && selectedValues.length > 0) {
+        relevantProducts = relevantProducts.filter(p => {
+          const val = p.specDetails?.[key as keyof ProductSpecs];
+          if (!val) return false;
+          // Support multi-value specs (split by comma)
+          const productValues = val.split(',').map(s => s.trim());
+          return productValues.some(v => selectedValues.includes(v));
+        });
+      }
+    });
+
+    // 3. Extract unique values from the remaining products
+    const values = new Set<string>();
+    relevantProducts.forEach(p => {
+      if (p.specDetails?.[filterKey]) {
+          // Split multi-value specs for option generation
+          p.specDetails[filterKey]!.split(',').forEach(v => values.add(v.trim()));
+      }
+    });
+
+    return Array.from(values).sort();
+  };
+
+  // --- Logic: Final Product List ---
+  const filteredProducts = useMemo(() => {
+    let result = allProducts.filter(product => {
+      // 1. Check Main Category
+      if (selectedCategory !== 'All' && product.category !== selectedCategory) return false;
+      
+      // Check search
+      if (searchQuery.trim()) {
+         const query = searchQuery.toLowerCase();
+         if (!product.name.toLowerCase().includes(query) && !product.description.toLowerCase().includes(query)) {
+             return false;
+         }
+      }
+
+      // 2. Check Detailed Filters
+      if (Object.keys(activeFilters).length === 0) return true;
+
+      return Object.entries(activeFilters).every(([key, selectedValues]: [string, string[]]) => {
+        if (selectedValues.length === 0) return true;
+        const productValue = product.specDetails?.[key as keyof ProductSpecs];
+        if (!productValue) return false;
+        
+        // Multi-value support
+        const values = productValue.split(',').map(s => s.trim());
+        return values.some(v => selectedValues.includes(v));
+      });
+    });
+
+    // Sorting Logic
+    switch (sortOption) {
+      case 'price-asc':
+        result.sort((a, b) => a.price - b.price);
+        break;
+      case 'price-desc':
+        result.sort((a, b) => b.price - a.price);
+        break;
+      case 'name-asc':
+        result.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      default:
+        // Keep original order
+        break;
+    }
+
+    return result;
+  }, [selectedCategory, activeFilters, allProducts, sortOption, searchQuery]);
+
+  // Handle Main Category Change
+  const handleCategorySelect = (cat: Category | 'All') => {
+    if (selectedCategory === cat) {
+        // Toggle expansion if clicking active category
+        if (cat !== 'All') toggleNode(cat);
+    } else {
+        setSelectedCategory(cat);
+        setActiveFilters({}); // Reset sub-filters when main category changes
+        if (cat !== 'All') {
+            setExpandedNodes(prev => ({ ...prev, [cat]: true }));
+        }
+    }
+  };
+
+  const toggleFilter = (key: string, value: string) => {
+    setActiveFilters(prev => {
+      const current = prev[key] || [];
+      if (current.includes(value)) {
+        const updated = current.filter(v => v !== value);
+        return updated.length > 0 ? { ...prev, [key]: updated } : (() => {
+          const { [key]: _, ...rest } = prev;
+          return rest;
+        })();
+      } else {
+        return { ...prev, [key]: [...current, value] };
+      }
+    });
+  };
+
+  // Helper to get Icon
+  const getCategoryIcon = (category: Category) => {
+    switch (category) {
+      case Category.CPU: return Cpu;
+      case Category.MB: return CircuitBoard;
+      case Category.GPU: return Layers; // Or generic layer/card icon
+      case Category.RAM: return CreditCard; // Resembles RAM stick
+      case Category.SSD: return HardDrive;
+      case Category.CASE: return Box;
+      case Category.PSU: return CircuitBoard; // No good PSU icon, reuse circuit
+      case Category.COOLER: return Fan; // Liquid
+      case Category.AIR_COOLER: return Wind; // Air
+      case Category.MONITOR: return Monitor;
+      case Category.SOFTWARE: return Disc;
+      default: return Box;
+    }
+  };
+
+  // --- Render Tree Node Helper ---
+  const renderTree = () => {
+    // We map over defined Categories to ensure order
+    const orderedCategories = [
+        Category.CPU, Category.MB, Category.GPU, Category.RAM, Category.SSD, Category.CASE, Category.PSU, Category.COOLER, Category.AIR_COOLER, Category.MONITOR, Category.SOFTWARE
+    ];
+
+    return (
+        <div className="space-y-3 select-none">
+            {/* "All" Option */}
+            <div 
+                onClick={() => handleCategorySelect('All')}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-colors ${selectedCategory === 'All' ? 'bg-black text-white font-bold shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
+            >
+                <span className="flex-1 text-base">全部商品</span>
+            </div>
+
+            {orderedCategories.map(cat => {
+                const isCatActive = selectedCategory === cat;
+                const isCatExpanded = expandedNodes[cat];
+                const filters = categoryFilters[cat];
+
+                return (
+                    <div key={cat} className="space-y-1">
+                        {/* Level 1: Category */}
+                        <div 
+                            onClick={() => handleCategorySelect(cat)}
+                            className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-colors group ${isCatActive ? 'bg-black text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
+                        >
+                            {isCatExpanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+                            <span className={`flex-1 text-base font-medium ${isCatActive ? 'text-white' : 'text-gray-900'}`}>
+                                {categoryDisplayMap[cat]}
+                            </span>
+                        </div>
+
+                        {/* Level 2: Filter Types (Only if Expanded) */}
+                        {isCatExpanded && filters && (
+                            <div className="pl-6 space-y-2 border-l-2 border-gray-100 ml-4 mt-2 mb-2">
+                                {filters.map(filter => {
+                                    const options = getSmartOptions(cat, filter.key);
+                                    if (options.length === 0) return null; // Don't show empty filters
+
+                                    const isFilterExpanded = expandedNodes[`${cat}-${filter.key}`];
+
+                                    return (
+                                        <div key={filter.key}>
+                                            <div 
+                                                onClick={() => toggleNode(`${cat}-${filter.key}`)}
+                                                className="flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer text-sm font-semibold text-gray-700 hover:text-black hover:bg-gray-50 transition-colors"
+                                            >
+                                                 {isFilterExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                                 <span>{filter.label}</span>
+                                            </div>
+
+                                            {/* Level 3: Options */}
+                                            {isFilterExpanded && (
+                                                <div className="pl-6 py-1 space-y-1.5">
+                                                    {options.map(option => {
+                                                        const isChecked = activeFilters[filter.key]?.includes(option);
+                                                        return (
+                                                            <div 
+                                                                key={option} 
+                                                                onClick={() => toggleFilter(filter.key as string, option)}
+                                                                className="flex items-center gap-2 py-1.5 cursor-pointer group"
+                                                            >
+                                                                <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${
+                                                                    isChecked ? 'bg-black border-black' : 'border-gray-300 bg-white group-hover:border-gray-400'
+                                                                }`}>
+                                                                    {isChecked && <Check className="h-3.5 w-3.5 text-white" />}
+                                                                </div>
+                                                                <span className={`text-sm ${isChecked ? 'text-black font-bold' : 'text-gray-600 group-hover:text-gray-900'}`}>
+                                                                    {option}
+                                                                </span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                );
+            })}
+        </div>
+    );
+  };
+
+  // --- Breadcrumb Component ---
+  const Breadcrumbs = () => (
+    <nav className="flex items-center text-sm md:text-base text-gray-500 mb-8 overflow-x-auto whitespace-nowrap hide-scrollbar">
+      <Link to="/" className="flex items-center hover:text-black transition-colors flex-shrink-0">
+        <Home className="h-5 w-5 mr-1.5" />
+        首頁
+      </Link>
+      
+      <ChevronRight className="h-5 w-5 mx-2 text-gray-300 flex-shrink-0" />
+      
+      <button 
+        onClick={() => { setSelectedCategory('All'); setActiveFilters({}); setSearchQuery(''); }}
+        className={`hover:text-black transition-colors flex-shrink-0 ${selectedCategory === 'All' ? 'font-bold text-gray-900' : ''}`}
+      >
+        精選零組件
+      </button>
+
+      {selectedCategory !== 'All' && (
+        <>
+          <ChevronRight className="h-5 w-5 mx-2 text-gray-300 flex-shrink-0" />
+          <button
+             onClick={() => setActiveFilters({})}
+             className={`hover:text-black transition-colors flex-shrink-0 ${Object.keys(activeFilters).length === 0 ? 'font-bold text-gray-900' : ''}`}
+          >
+            {categoryDisplayMap[selectedCategory]}
+          </button>
+        </>
+      )}
+
+      {Object.entries(activeFilters).map(([key, values]: [string, string[]]) => {
+         if (values.length === 0) return null;
+         return (
+           <React.Fragment key={key}>
+             <ChevronRight className="h-5 w-5 mx-2 text-gray-300 flex-shrink-0" />
+             <span className="font-bold text-gray-900 flex-shrink-0">
+               {values.join(', ')}
+             </span>
+           </React.Fragment>
+         );
+      })}
+    </nav>
+  );
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 py-8 md:py-16">
+      <style>
+        {`
+          @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          .animate-fade-in-up {
+            animation: fadeInUp 0.5s ease-out forwards;
+          }
+        `}
+      </style>
+
+      {/* Breadcrumb Navigation */}
+      <Breadcrumbs />
+
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
+        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 w-full md:w-auto">精選零組件</h1>
+        
+        <div className="flex flex-wrap md:flex-nowrap gap-4 w-full md:w-auto items-center">
+            {/* Search Input */}
+            <div className="relative flex-grow md:flex-grow-0 w-full md:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input 
+                    type="text" 
+                    placeholder="搜尋商品..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-10 py-3 bg-white border border-gray-300 rounded-xl leading-tight focus:outline-none focus:border-black focus:ring-1 focus:ring-black shadow-sm text-sm"
+                />
+                {/* Clear Search Button */}
+                {searchQuery && (
+                  <button 
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-200 transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+            </div>
+
+            {/* Sort Dropdown */}
+            <div className="relative flex-grow md:flex-grow-0 w-full md:w-auto">
+                <select 
+                    value={sortOption} 
+                    onChange={(e) => setSortOption(e.target.value)}
+                    className="w-full md:w-auto appearance-none bg-white border border-gray-300 text-gray-700 py-3 pl-5 pr-12 rounded-xl leading-tight focus:outline-none focus:border-black focus:ring-1 focus:ring-black cursor-pointer shadow-sm text-sm font-medium"
+                >
+                    <option value="default">預設排序</option>
+                    <option value="price-asc">價格: 低到高</option>
+                    <option value="price-desc">價格: 高到低</option>
+                    <option value="name-asc">名稱: A-Z</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
+                    <ChevronDown className="h-5 w-5" />
+                </div>
+            </div>
+
+            <button 
+              className="lg:hidden flex items-center justify-center gap-2 px-5 py-3 bg-black text-white rounded-xl flex-shrink-0 font-bold w-full md:w-auto"
+              onClick={() => setMobileFiltersOpen(true)}
+            >
+              <SlidersHorizontal className="h-5 w-5" /> 規格篩選
+            </button>
+        </div>
+      </div>
+
+      <div className="flex flex-col lg:flex-row gap-10">
+        {/* Tree Sidebar (Desktop) */}
+        <aside className={`
+          lg:w-80 flex-shrink-0 
+          ${mobileFiltersOpen ? 'fixed inset-0 z-50 bg-white p-6 overflow-y-auto' : 'hidden lg:block bg-white'}
+        `}>
+          <div className="flex justify-between items-center mb-8 lg:hidden">
+            <h2 className="text-2xl font-bold">產品分類</h2>
+            <button onClick={() => setMobileFiltersOpen(false)}><X className="h-8 w-8" /></button>
+          </div>
+
+          <div className="sticky top-24 max-h-[calc(100vh-100px)] overflow-y-auto pr-3 hide-scrollbar">
+             {renderTree()}
+             
+             {/* Mobile specific apply button */}
+             {mobileFiltersOpen && (
+                <button 
+                  onClick={() => setMobileFiltersOpen(false)}
+                  className="w-full mt-8 bg-black text-white py-4 rounded-xl font-bold text-lg"
+                >
+                  查看 {filteredProducts.length} 個商品
+                </button>
+             )}
+          </div>
+        </aside>
+
+        {/* Product Grid */}
+        <div className="flex-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
+            {filteredProducts.length > 0 ? (
+              filteredProducts.map((product, index) => {
+                const CategoryIcon = getCategoryIcon(product.category);
+                
+                return (
+                  <div 
+                    key={product.id} 
+                    className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group border border-gray-100 flex flex-col animate-fade-in-up cursor-pointer"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <div className="relative h-64 bg-gray-50 p-8 flex items-center justify-center overflow-hidden group/image">
+                      {product.image ? (
+                         <img 
+                            src={product.image} 
+                            alt={product.name} 
+                            className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500"
+                          />
+                      ) : (
+                         <div className="flex flex-col items-center justify-center text-gray-300">
+                             <CategoryIcon className="h-24 w-24 mb-3 opacity-50" />
+                             <span className="text-sm font-medium text-gray-400">CryPC Selection</span>
+                         </div>
+                      )}
+                      
+                      {product.specDetails?.brand && (
+                        <span className="absolute top-5 left-5 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm border border-gray-100">
+                          {product.specDetails.brand}
+                        </span>
+                      )}
+
+                      {/* Hover Tooltip Overlay */}
+                      <div className="absolute inset-0 bg-black/85 opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex items-center justify-center p-8 text-white backdrop-blur-sm">
+                        <div className="w-full space-y-3">
+                            <h4 className="font-bold border-b border-gray-600 pb-2 mb-3 text-lg">{product.name}</h4>
+                            {Object.entries(product.specDetails || {}).map(([key, value]) => (
+                              <div key={key} className="flex justify-between text-sm text-gray-300">
+                                  <span className="capitalize opacity-70">{key}:</span>
+                                  <span className="font-bold text-white">{value}</span>
+                              </div>
+                            ))}
+                            <div className="pt-4 text-center text-sm text-gray-400 font-medium">點擊查看詳情</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-6 flex-1 flex flex-col">
+                      <div className="flex justify-between items-start mb-3">
+                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{product.category}</span>
+                        {product.specDetails?.socket && <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded">{product.specDetails.socket}</span>}
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-4 leading-snug">{product.name}</h3>
+                      
+                      {/* Spec List */}
+                      <div className="flex-grow mb-6">
+                        {product.specDetails && Object.keys(product.specDetails).length > 0 ? (
+                          <div className="space-y-2">
+                            {Object.entries(product.specDetails)
+                              .filter(([key]) => key !== 'brand') // Brand is on the image
+                              .slice(0, 4) // Show top 4 specs
+                              .map(([key, value]) => (
+                                <div key={key} className="flex items-center text-sm">
+                                  <span className="w-2 h-2 rounded-full bg-gray-200 mr-3 flex-shrink-0"></span>
+                                  <span className="text-gray-400 capitalize w-20 flex-shrink-0 font-medium">{key}</span>
+                                  <span className="text-gray-700 font-bold truncate">{value}</span>
+                                </div>
+                              ))}
+                          </div>
+                        ) : (
+                          <p className="text-gray-500 text-sm line-clamp-3 leading-relaxed">{product.description}</p>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center justify-between mt-auto pt-5 border-t border-gray-50">
+                        <span className="text-2xl font-bold text-gray-900">NT$ {product.price.toLocaleString()}</span>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addToCart(product);
+                          }}
+                          className="px-5 py-3 bg-black text-white rounded-xl hover:bg-gray-800 active:scale-95 transition-all shadow-lg shadow-gray-200 flex gap-2 items-center"
+                        >
+                          <ShoppingBag className="h-5 w-5" />
+                          <span className="text-base font-bold">加入</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="col-span-full py-24 text-center text-gray-400 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                <Filter className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                <p className="text-lg">沒有符合條件的商品，請嘗試調整篩選器。</p>
+                <button 
+                  onClick={() => { setActiveFilters({}); setSearchQuery(''); }}
+                  className="mt-6 text-blue-600 hover:underline text-base font-medium"
+                >
+                  清除所有篩選
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Products;
