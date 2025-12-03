@@ -112,12 +112,22 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
   const primaryMb = build[Category.MB]?.[0];
   const primaryRam = build[Category.RAM]?.[0];
   const primaryPsu = build[Category.PSU]?.[0];
+  const primaryCase = build[Category.CASE]?.[0];
+  const primaryGpu = build[Category.GPU]?.[0];
+  const primaryCooler = build[Category.COOLER]?.[0];
+  const primaryAirCooler = build[Category.AIR_COOLER]?.[0];
 
   const parseWattage = (val?: string): number => {
     if (!val) return 0;
     const match = val.match(/(\d+)/);
     return match ? parseInt(match[0]) : 0;
   };
+
+  const parseDimension = (val?: string): number => {
+    if (!val) return 9999; // If no limit specified, assume infinite
+    const match = val.match(/(\d+)/);
+    return match ? parseInt(match[0]) : 9999;
+  }
 
   const totalTDP = useMemo(() => {
       let tdp = 0;
@@ -126,7 +136,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
               tdp += parseWattage(item.specDetails?.tdp);
           }
       });
-      // Base system power buffer
+      // Base system power buffer (Fans, SSDs, RGB)
       return tdp > 0 ? tdp + 50 : 0;
   }, [cartItems]);
 
@@ -135,6 +145,77 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
       // Simple logic: Total TDP * 1.5 rounded up to nearest 50
       return Math.ceil((totalTDP * 1.5) / 50) * 50;
   }, [totalTDP]);
+
+  // --- Compatibility Validation Logic (Enhanced) ---
+  const checkCompatibility = (item: Product): string | null => {
+    // 1. MB Checks
+    if (item.category === Category.MB) {
+        // Check vs CPU Socket
+        if (primaryCpu?.specDetails?.socket && item.specDetails?.socket !== primaryCpu.specDetails.socket) {
+            return `腳位不符: CPU ${primaryCpu.specDetails.socket} vs MB ${item.specDetails?.socket}`;
+        }
+        // Check vs RAM Type
+        if (primaryRam?.specDetails?.type && item.specDetails?.memoryType) {
+            if (primaryRam.specDetails.type !== item.specDetails.memoryType) {
+                return `記憶體不符: RAM ${primaryRam.specDetails.type} vs MB 支援 ${item.specDetails.memoryType}`;
+            }
+        }
+    }
+
+    // 2. CPU Checks
+    if (item.category === Category.CPU && primaryMb?.specDetails?.socket) {
+      if (item.specDetails?.socket !== primaryMb.specDetails.socket) {
+        return `腳位不符: MB ${primaryMb.specDetails.socket} vs CPU ${item.specDetails?.socket}`;
+      }
+    }
+
+    // 3. RAM Checks
+    if (item.category === Category.RAM) {
+        // Check vs MB Support
+        if (primaryMb?.specDetails?.memoryType && item.specDetails?.type !== primaryMb.specDetails.memoryType) {
+             return `記憶體不符: MB 支援 ${primaryMb.specDetails.memoryType} vs RAM ${item.specDetails?.type}`;
+        }
+        // Check vs Existing RAM (Mixing types)
+        const otherRam = build[Category.RAM]?.find(r => r.id !== item.id);
+        if (otherRam && otherRam.specDetails?.type !== item.specDetails?.type) {
+             return `混插警告: ${otherRam.specDetails?.type} 與 ${item.specDetails?.type}`;
+        }
+    }
+
+    // 4. Physical Size Checks (GPU vs Case)
+    if (item.category === Category.GPU && primaryCase?.specDetails?.gpuLength) {
+        const caseLimit = parseDimension(primaryCase.specDetails.gpuLength);
+        const gpuLen = parseDimension(item.specDetails?.gpuLength);
+        if (gpuLen > caseLimit) {
+            return `顯卡過長: 卡 ${gpuLen}mm > 機殼限 ${caseLimit}mm`;
+        }
+    }
+    if (item.category === Category.CASE && primaryGpu?.specDetails?.gpuLength) {
+        const caseLimit = parseDimension(item.specDetails?.gpuLength);
+        const gpuLen = parseDimension(primaryGpu.specDetails.gpuLength);
+        if (gpuLen > caseLimit) {
+            return `機殼過小: 限長 ${caseLimit}mm < 顯卡 ${gpuLen}mm`;
+        }
+    }
+
+    // 5. Physical Size Checks (Air Cooler vs Case)
+    if (item.category === Category.AIR_COOLER && primaryCase?.specDetails?.coolerHeight) {
+        const caseLimit = parseDimension(primaryCase.specDetails.coolerHeight);
+        const coolerH = parseDimension(item.specDetails?.coolerHeight);
+        if (coolerH > caseLimit) {
+            return `散熱器過高: 高 ${coolerH}mm > 機殼限 ${caseLimit}mm`;
+        }
+    }
+    if (item.category === Category.CASE && primaryAirCooler?.specDetails?.coolerHeight) {
+        const caseLimit = parseDimension(item.specDetails?.coolerHeight);
+        const coolerH = parseDimension(primaryAirCooler.specDetails.coolerHeight);
+        if (coolerH > caseLimit) {
+            return `機殼過窄: 限高 ${caseLimit}mm < 散熱器 ${coolerH}mm`;
+        }
+    }
+    
+    return null;
+  };
 
 
   // --- Handlers ---
@@ -410,45 +491,6 @@ ${cartItems.map(item => `${item.category}: ${item.name} x${item.quantity} - $${(
       }
   };
 
-  // --- Compatibility Validation Logic ---
-  const checkCompatibility = (item: Product): string | null => {
-    // 1. MB Checks
-    if (item.category === Category.MB) {
-        // Check vs CPU Socket
-        if (primaryCpu?.specDetails?.socket && item.specDetails?.socket !== primaryCpu.specDetails.socket) {
-            return `腳位不符: CPU ${primaryCpu.specDetails.socket} vs MB ${item.specDetails?.socket}`;
-        }
-        // Check vs RAM Type
-        if (primaryRam?.specDetails?.type && item.specDetails?.memoryType) {
-            if (primaryRam.specDetails.type !== item.specDetails.memoryType) {
-                return `記憶體不符: RAM ${primaryRam.specDetails.type} vs MB 支援 ${item.specDetails.memoryType}`;
-            }
-        }
-    }
-
-    // 2. CPU Checks
-    if (item.category === Category.CPU && primaryMb?.specDetails?.socket) {
-      if (item.specDetails?.socket !== primaryMb.specDetails.socket) {
-        return `腳位不符: MB ${primaryMb.specDetails.socket} vs CPU ${item.specDetails?.socket}`;
-      }
-    }
-
-    // 3. RAM Checks
-    if (item.category === Category.RAM) {
-        // Check vs MB Support
-        if (primaryMb?.specDetails?.memoryType && item.specDetails?.type !== primaryMb.specDetails.memoryType) {
-             return `記憶體不符: MB 支援 ${primaryMb.specDetails.memoryType} vs RAM ${item.specDetails?.type}`;
-        }
-        // Check vs Existing RAM (Mixing types)
-        const otherRam = build[Category.RAM]?.find(r => r.id !== item.id);
-        if (otherRam && otherRam.specDetails?.type !== item.specDetails?.type) {
-             return `混插警告: ${otherRam.specDetails?.type} 與 ${item.specDetails?.type}`;
-        }
-    }
-    
-    return null;
-  };
-
   // --- Filter Logic ---
   const getSmartOptions = (category: Category, filterKey: keyof ProductSpecs) => {
      let relevantProducts = allProducts.filter(p => p.category === category);
@@ -536,6 +578,11 @@ ${cartItems.map(item => `${item.category}: ${item.name} x${item.quantity} - $${(
   };
 
   const totalPrice = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+
+  // --- Wattage Visuals ---
+  const currentPsuWattage = primaryPsu ? parseWattage(primaryPsu.specDetails?.wattage) : 0;
+  const wattagePercentage = currentPsuWattage > 0 ? (totalTDP / currentPsuWattage) * 100 : (totalTDP / recommendedPsuWattage) * 100;
+  const wattageColor = wattagePercentage > 90 ? 'bg-red-500' : wattagePercentage > 70 ? 'bg-yellow-500' : 'bg-green-500';
 
   return (
     <div className="max-w-7xl mx-auto px-2 md:px-4 py-4 md:py-10 pb-32 md:pb-12">
@@ -675,7 +722,6 @@ ${cartItems.map(item => `${item.category}: ${item.name} x${item.quantity} - $${(
         </div>
 
         {/* Right Column: Sticky Sidebar (Summary) - PC Only (lg:col-span-4) */}
-        {/* Changed to sticky positioning for floating effect */}
         <div className="hidden lg:block lg:col-span-4 order-1 lg:order-2 h-full">
            <div className="sticky top-24 self-start bg-white rounded-2xl shadow-lg shadow-gray-200/50 border border-gray-200 p-6 max-h-[calc(100vh-120px)] flex flex-col">
                 <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-100 flex-shrink-0">
@@ -694,15 +740,22 @@ ${cartItems.map(item => `${item.category}: ${item.name} x${item.quantity} - $${(
                 <div className="flex-shrink-0 mb-6 bg-gray-50 rounded-xl p-5 border border-gray-100 text-center">
                     <div className="text-xs text-gray-500 uppercase font-bold tracking-widest mb-1">預估總金額</div>
                     <div className="text-4xl font-extrabold text-black tabular-nums tracking-tight">${totalPrice.toLocaleString()}</div>
+                    
                     {totalTDP > 0 && (
-                        <div className="mt-3 pt-3 border-t border-gray-200 flex justify-center gap-4 text-xs font-medium">
-                            <div className="flex items-center gap-1 text-gray-600" title="CPU + GPU TDP 加總">
-                                <Zap className="h-3 w-3 text-yellow-500 fill-yellow-500" />
-                                功耗: {totalTDP}W
+                        <div className="mt-4 pt-4 border-t border-gray-200">
+                            <div className="flex justify-between text-xs font-bold text-gray-500 mb-1.5">
+                                <span>功耗負載</span>
+                                <span>{totalTDP}W / {currentPsuWattage > 0 ? currentPsuWattage + 'W' : '未選電源'}</span>
                             </div>
-                            <div className="flex items-center gap-1 text-gray-600" title="建議電源瓦數">
-                                <Box className="h-3 w-3" />
-                                建議: {recommendedPsuWattage}W+
+                            <div className="h-3 w-full bg-gray-200 rounded-full overflow-hidden">
+                                <div 
+                                    className={`h-full transition-all duration-500 ${wattageColor}`} 
+                                    style={{ width: `${Math.min(wattagePercentage, 100)}%` }} 
+                                />
+                            </div>
+                            <div className="flex justify-between mt-1.5 text-[10px] text-gray-400">
+                                <span>建議配置: {recommendedPsuWattage}W+</span>
+                                {currentPsuWattage > 0 && <span>(負載 {Math.round(wattagePercentage)}%)</span>}
                             </div>
                         </div>
                     )}
