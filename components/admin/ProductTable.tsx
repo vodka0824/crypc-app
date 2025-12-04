@@ -44,15 +44,12 @@ const ProductTable: React.FC<ProductTableProps> = ({
     });
   };
 
-  // Sticky header offset calculation:
-  // Navbar (64px) + Toolbar (~80px) + Category Filters (~60px) ~= 204px
-  // Adjust based on actual UI. Using top-[190px] as a safe bet for desktop.
-  
   return (
-    <div className="bg-white rounded-3xl border border-gray-200 shadow-sm relative isolate">
-      <div className="overflow-x-auto rounded-3xl">
+    <div className="bg-white rounded-3xl border border-gray-200 shadow-sm relative isolate overflow-hidden">
+      <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse min-w-[1000px]">
-          <thead className="bg-gray-50 border-b border-gray-200 sticky top-[190px] z-20 shadow-sm">
+          {/* Changed top-[190px] to top-0 because the container now scrolls */}
+          <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-20 shadow-sm">
             <tr>
               <th className="px-6 py-4 w-12 sticky left-0 bg-gray-50 z-20">
                 <button onClick={onSelectAll} className="flex items-center text-gray-500 hover:text-black">
