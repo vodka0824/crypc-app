@@ -84,17 +84,6 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose, cartItems, r
                         <div className="absolute inset-0 flex items-center justify-center">
                             <ItemIcon className="h-6 w-6 text-gray-300" />
                         </div>
-                        {item.image && (
-                            <img 
-                                src={item.image} 
-                                className="w-full h-full object-contain z-10 relative mix-blend-multiply p-1" 
-                                alt="" 
-                                loading="lazy"
-                                onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
-                                }}
-                            />
-                        )}
                     </div>
                     
                     <div className="flex flex-1 flex-col min-w-0">
