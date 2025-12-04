@@ -3,7 +3,7 @@
 import React from 'react';
 import { Category, Product } from '../../types';
 import { categoryDisplayMap, categoryFilters } from '../../data/mockData';
-import { Loader2, Square, CheckSquare, Edit, Trash2, FileText, Clock } from 'lucide-react';
+import { Loader2, Square, CheckSquare, Edit, Trash2, Clock, Image as ImageIcon } from 'lucide-react';
 
 interface ProductTableProps {
   isLoading: boolean;
@@ -45,37 +45,40 @@ const ProductTable: React.FC<ProductTableProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-3xl border border-gray-200 shadow-sm relative isolate overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse min-w-[1000px]">
-          {/* Changed top-[190px] to top-0 because the container now scrolls */}
-          <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-20 shadow-sm">
+    // Fixed height container acting as the "Scroll View"
+    <div className="h-full bg-white rounded-3xl border border-gray-200 shadow-sm flex flex-col overflow-hidden">
+      <div className="flex-1 overflow-auto custom-scrollbar">
+        <table className="w-full text-left border-collapse">
+          {/* Sticky Header: Sticks to the top of this container */}
+          <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-30 shadow-sm">
             <tr>
-              <th className="px-6 py-4 w-12 sticky left-0 bg-gray-50 z-20">
-                <button onClick={onSelectAll} className="flex items-center text-gray-500 hover:text-black">
+              <th className="px-4 py-3 w-12 text-center sticky left-0 bg-gray-50 z-20">
+                <button onClick={onSelectAll} className="flex items-center justify-center text-gray-400 hover:text-black transition-colors">
                   {selectedIds.size > 0 && selectedIds.size === filteredProducts.length ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
                 </button>
               </th>
-              <th className="px-6 py-4 font-bold text-gray-900 w-[240px]">商品名稱 / ID</th>
+              
+              <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider w-[250px] min-w-[250px]">商品名稱 / ID</th>
               
               {isAllCategories ? (
                 <>
-                  <th className="px-6 py-4 font-bold text-gray-900 w-32 whitespace-nowrap">分類</th>
-                  <th className="px-6 py-4 font-bold text-gray-900 min-w-[200px]">規格詳情</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider w-24 whitespace-nowrap">分類</th>
+                  {/* Flexible width for specs to take up remaining space */}
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider min-w-[300px]">規格詳情</th>
                 </>
               ) : dynamicSpecs.length > 0 ? (
                 dynamicSpecs.slice(0, 4).map(spec => (
-                  <th key={spec.key} className="px-4 py-4 font-bold text-gray-700 whitespace-nowrap">{spec.label}</th>
+                  <th key={spec.key} className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">{spec.label}</th>
                 ))
               ) : (
-                <th className="px-6 py-4 font-bold text-gray-900">分類</th>
+                <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">分類</th>
               )}
               
-              <th className="px-6 py-4 font-bold text-gray-900 text-right whitespace-nowrap w-28">價格</th>
-              <th className="px-6 py-4 font-bold text-gray-900 whitespace-nowrap w-32">
-                <div className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> 最後更新</div>
+              <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-right w-28 whitespace-nowrap">價格</th>
+              <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider w-32 whitespace-nowrap">
+                <div className="flex items-center gap-1"><Clock className="h-3 w-3" /> 最後更新</div>
               </th>
-              <th className="px-6 py-4 font-bold text-gray-900 text-right w-24 sticky right-0 bg-gray-50 z-20">操作</th>
+              <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-right w-20 sticky right-0 bg-gray-50 z-20">操作</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -100,42 +103,43 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 const showImage = product.category === Category.CASE;
 
                 return (
-                  <tr key={product.id} className={`group hover:bg-gray-50 transition-colors ${isSelected ? 'bg-blue-50/50' : ''}`}>
-                    <td className="px-6 py-4 sticky left-0 bg-white group-hover:bg-gray-50 z-10 transition-colors">
-                      <button onClick={() => onSelectOne(product.id)} className={`flex items-center ${isSelected ? 'text-black' : 'text-gray-300 hover:text-gray-500'}`}>
+                  <tr key={product.id} className={`group hover:bg-gray-50 transition-colors ${isSelected ? 'bg-blue-50/40' : ''}`}>
+                    <td className="px-4 py-3 sticky left-0 bg-white group-hover:bg-gray-50 z-10 transition-colors text-center">
+                      <button onClick={() => onSelectOne(product.id)} className={`flex items-center justify-center ${isSelected ? 'text-black' : 'text-gray-300 hover:text-gray-500'}`}>
                         {isSelected ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
                       </button>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-4">
+                    
+                    <td className="px-4 py-3 align-top">
+                      <div className="flex gap-3">
                         {showImage && (
-                          <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 overflow-hidden flex-shrink-0 border border-gray-200">
-                            {product.image ? <img src={product.image} alt="" className="w-full h-full object-cover" /> : <FileText className="h-5 w-5" />}
+                          <div className="w-10 h-10 rounded-md bg-gray-100 flex items-center justify-center text-gray-400 overflow-hidden flex-shrink-0 border border-gray-200">
+                            {product.image ? <img src={product.image} alt="" className="w-full h-full object-cover" /> : <ImageIcon className="h-4 w-4" />}
                           </div>
                         )}
                         <div className="min-w-0">
-                          <div className="font-bold text-gray-900 leading-tight line-clamp-2" title={product.name}>{product.name}</div>
-                          <div className="text-xs text-gray-400 font-mono mt-0.5">{product.id}</div>
+                          <div className="font-bold text-gray-900 text-sm leading-snug line-clamp-2" title={product.name}>{product.name}</div>
+                          <div className="text-[10px] text-gray-400 font-mono mt-0.5">{product.id}</div>
                         </div>
                       </div>
                     </td>
                     
                     {isAllCategories ? (
                       <>
-                        <td className="px-6 py-4">
-                          <span className="px-2.5 py-1 bg-gray-100 text-gray-600 font-bold text-xs rounded-lg border border-gray-200 whitespace-nowrap">
+                        <td className="px-4 py-3 align-top">
+                          <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 font-bold text-[10px] rounded border border-gray-200 whitespace-nowrap">
                             {categoryDisplayMap[product.category]}
                           </span>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-wrap gap-1.5">
+                        <td className="px-4 py-3 align-top">
+                          <div className="flex flex-wrap gap-1">
                             {product.specDetails && Object.keys(product.specDetails).length > 0 ? (
                               Object.entries(product.specDetails)
                                 .filter(([key]) => key !== 'brand')
-                                .slice(0, 6)
+                                .slice(0, 8)
                                 .map(([key, value]) => (
                                   <span key={key} className="inline-flex items-center px-1.5 py-0.5 rounded bg-white border border-gray-200 text-[10px] text-gray-600 whitespace-nowrap">
-                                    <span className="font-semibold text-gray-400 mr-1 capitalize">{key}:</span> {value}
+                                    <span className="font-medium text-gray-400 mr-1 capitalize">{key}:</span> {value}
                                   </span>
                                 ))
                             ) : (
@@ -146,34 +150,34 @@ const ProductTable: React.FC<ProductTableProps> = ({
                       </>
                     ) : dynamicSpecs.length > 0 ? (
                       dynamicSpecs.slice(0, 4).map(spec => (
-                        <td key={spec.key} className="px-4 py-4 text-sm text-gray-600">
+                        <td key={spec.key} className="px-4 py-3 text-sm text-gray-600 align-top">
                           {product.specDetails?.[spec.key] ? (
-                            <span className="bg-white px-2 py-1 rounded text-xs font-medium text-gray-700 border border-gray-200 whitespace-nowrap">
+                            <span className="bg-white px-2 py-0.5 rounded text-xs font-medium text-gray-700 border border-gray-200 whitespace-nowrap">
                               {product.specDetails[spec.key]}
                             </span>
                           ) : <span className="text-gray-300">-</span>}
                         </td>
                       ))
                     ) : (
-                      <td className="px-6 py-4">
-                        <span className="px-2.5 py-1 bg-gray-100 text-gray-600 font-bold text-xs rounded-lg border border-gray-200">
+                      <td className="px-4 py-3 align-top">
+                        <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 font-bold text-[10px] rounded border border-gray-200">
                           {categoryDisplayMap[product.category]}
                         </span>
                       </td>
                     )}
 
-                    <td className="px-6 py-4 font-bold text-right text-gray-900 tabular-nums">
+                    <td className="px-4 py-3 font-bold text-right text-gray-900 tabular-nums text-sm align-top">
                       {product.price.toLocaleString()}
                     </td>
-                    <td className="px-6 py-4 text-xs text-gray-500 font-mono whitespace-nowrap">
+                    <td className="px-4 py-3 text-[10px] text-gray-400 font-mono whitespace-nowrap align-top pt-3.5">
                         {formatTime(product.lastUpdated)}
                     </td>
-                    <td className="px-6 py-4 text-right sticky right-0 bg-white group-hover:bg-gray-50 z-10 transition-colors">
-                      <div className="flex justify-end gap-2">
-                        <button onClick={() => onEdit(product)} className="p-2 text-gray-400 hover:text-black hover:bg-gray-100 rounded-lg transition-colors">
+                    <td className="px-4 py-3 text-right sticky right-0 bg-white group-hover:bg-gray-50 z-10 transition-colors align-top">
+                      <div className="flex justify-end gap-1">
+                        <button onClick={() => onEdit(product)} className="p-1.5 text-gray-400 hover:text-black hover:bg-gray-200 rounded-md transition-colors" title="編輯">
                           <Edit className="h-4 w-4" />
                         </button>
-                        <button onClick={() => onDelete(product.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                        <button onClick={() => onDelete(product.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="刪除">
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
