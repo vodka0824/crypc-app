@@ -11,17 +11,15 @@ interface ProductsProps {
 }
 
 const Products: React.FC<ProductsProps> = ({ addToCart }) => {
-  const { products: allProducts } = useProducts(); // Use context instead of mockProducts
+  const { products: allProducts } = useProducts();
   const [selectedCategory, setSelectedCategory] = useState<Category | 'All'>('All');
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [sortOption, setSortOption] = useState<string>('default');
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Tree state: which nodes are expanded
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
 
-  // Initialize: expand the selected category if it's not All
   useEffect(() => {
     if (selectedCategory !== 'All') {
       setExpandedNodes(prev => ({ ...prev, [selectedCategory]: true }));
@@ -32,15 +30,12 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
     setExpandedNodes(prev => ({ ...prev, [nodeId]: !prev[nodeId] }));
   };
 
-  // --- Core Logic: Smart Options (Cascading Filters) ---
   const getSmartOptions = (
     category: Category, 
     filterKey: keyof ProductSpecs
   ) => {
-    // 1. Start with all products in this category (using context data)
     let relevantProducts = allProducts.filter(p => p.category === category);
     
-    // Filter by search query
     if (searchQuery.trim()) {
        const query = searchQuery.toLowerCase();
        relevantProducts = relevantProducts.filter(p => 
@@ -49,24 +44,20 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
        );
     }
 
-    // 2. Filter these products by *other* active filters to enforce dependencies
     Object.entries(activeFilters).forEach(([key, selectedValues]: [string, string[]]) => {
       if (key !== filterKey && selectedValues.length > 0) {
         relevantProducts = relevantProducts.filter(p => {
           const val = p.specDetails?.[key as keyof ProductSpecs];
           if (!val) return false;
-          // Support multi-value specs (split by comma)
           const productValues = val.split(',').map(s => s.trim());
           return productValues.some(v => selectedValues.includes(v));
         });
       }
     });
 
-    // 3. Extract unique values from the remaining products
     const values = new Set<string>();
     relevantProducts.forEach(p => {
       if (p.specDetails?.[filterKey]) {
-          // Split multi-value specs for option generation
           p.specDetails[filterKey]!.split(',').forEach(v => values.add(v.trim()));
       }
     });
@@ -74,13 +65,10 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
     return Array.from(values).sort();
   };
 
-  // --- Logic: Final Product List ---
   const filteredProducts = useMemo(() => {
     let result = allProducts.filter(product => {
-      // 1. Check Main Category
       if (selectedCategory !== 'All' && product.category !== selectedCategory) return false;
       
-      // Check search
       if (searchQuery.trim()) {
          const query = searchQuery.toLowerCase();
          if (!product.name.toLowerCase().includes(query) && !product.description.toLowerCase().includes(query)) {
@@ -88,7 +76,6 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
          }
       }
 
-      // 2. Check Detailed Filters
       if (Object.keys(activeFilters).length === 0) return true;
 
       return Object.entries(activeFilters).every(([key, selectedValues]: [string, string[]]) => {
@@ -96,13 +83,11 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
         const productValue = product.specDetails?.[key as keyof ProductSpecs];
         if (!productValue) return false;
         
-        // Multi-value support
         const values = productValue.split(',').map(s => s.trim());
         return values.some(v => selectedValues.includes(v));
       });
     });
 
-    // Sorting Logic
     switch (sortOption) {
       case 'price-asc':
         result.sort((a, b) => a.price - b.price);
@@ -114,21 +99,18 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
         result.sort((a, b) => a.name.localeCompare(b.name));
         break;
       default:
-        // Keep original order
         break;
     }
 
     return result;
   }, [selectedCategory, activeFilters, allProducts, sortOption, searchQuery]);
 
-  // Handle Main Category Change
   const handleCategorySelect = (cat: Category | 'All') => {
     if (selectedCategory === cat) {
-        // Toggle expansion if clicking active category
         if (cat !== 'All') toggleNode(cat);
     } else {
         setSelectedCategory(cat);
-        setActiveFilters({}); // Reset sub-filters when main category changes
+        setActiveFilters({});
         if (cat !== 'All') {
             setExpandedNodes(prev => ({ ...prev, [cat]: true }));
         }
@@ -150,7 +132,6 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
     });
   };
 
-  // Helper to get Icon
   const getCategoryIcon = (category: Category) => {
     switch (category) {
       case Category.CPU: return Cpu;
@@ -169,16 +150,13 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
     }
   };
 
-  // --- Render Tree Node Helper ---
   const renderTree = () => {
-    // We map over defined Categories to ensure order
     const orderedCategories = [
         Category.CPU, Category.MB, Category.GPU, Category.RAM, Category.SSD, Category.CASE, Category.PSU, Category.COOLER, Category.AIR_COOLER, Category.MONITOR, Category.SOFTWARE
     ];
 
     return (
         <div className="space-y-3 select-none">
-            {/* "All" Option */}
             <div 
                 onClick={() => handleCategorySelect('All')}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-colors ${selectedCategory === 'All' ? 'bg-black text-white font-bold shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
@@ -193,7 +171,6 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
 
                 return (
                     <div key={cat} className="space-y-1">
-                        {/* Level 1: Category */}
                         <div 
                             onClick={() => handleCategorySelect(cat)}
                             className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-colors group ${isCatActive ? 'bg-black text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
@@ -204,12 +181,11 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
                             </span>
                         </div>
 
-                        {/* Level 2: Filter Types (Only if Expanded) */}
                         {isCatExpanded && filters && (
                             <div className="pl-6 space-y-2 border-l-2 border-gray-100 ml-4 mt-2 mb-2">
                                 {filters.map(filter => {
                                     const options = getSmartOptions(cat, filter.key);
-                                    if (options.length === 0) return null; // Don't show empty filters
+                                    if (options.length === 0) return null;
 
                                     const isFilterExpanded = expandedNodes[`${cat}-${filter.key}`];
 
@@ -223,7 +199,6 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
                                                  <span>{filter.label}</span>
                                             </div>
 
-                                            {/* Level 3: Options */}
                                             {isFilterExpanded && (
                                                 <div className="pl-6 py-1 space-y-1.5">
                                                     {options.map(option => {
@@ -259,23 +234,19 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
     );
   };
 
-  // --- Breadcrumb Component ---
   const Breadcrumbs = () => (
     <nav className="flex items-center text-sm md:text-base text-gray-500 mb-8 overflow-x-auto whitespace-nowrap hide-scrollbar">
       <Link to="/" className="flex items-center hover:text-black transition-colors flex-shrink-0">
         <Home className="h-5 w-5 mr-1.5" />
         首頁
       </Link>
-      
       <ChevronRight className="h-5 w-5 mx-2 text-gray-300 flex-shrink-0" />
-      
       <button 
         onClick={() => { setSelectedCategory('All'); setActiveFilters({}); setSearchQuery(''); }}
         className={`hover:text-black transition-colors flex-shrink-0 ${selectedCategory === 'All' ? 'font-bold text-gray-900' : ''}`}
       >
         精選零組件
       </button>
-
       {selectedCategory !== 'All' && (
         <>
           <ChevronRight className="h-5 w-5 mx-2 text-gray-300 flex-shrink-0" />
@@ -287,7 +258,6 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
           </button>
         </>
       )}
-
       {Object.entries(activeFilters).map(([key, values]: [string, string[]]) => {
          if (values.length === 0) return null;
          return (
@@ -316,15 +286,12 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
         `}
       </style>
 
-      {/* Breadcrumb Navigation */}
       <Breadcrumbs />
 
-      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 w-full md:w-auto">精選零組件</h1>
         
         <div className="flex flex-wrap md:flex-nowrap gap-4 w-full md:w-auto items-center">
-            {/* Search Input */}
             <div className="relative flex-grow md:flex-grow-0 w-full md:w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input 
@@ -334,7 +301,6 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-9 pr-10 py-3 bg-white border border-gray-300 rounded-xl leading-tight focus:outline-none focus:border-black focus:ring-1 focus:ring-black shadow-sm text-sm"
                 />
-                {/* Clear Search Button */}
                 {searchQuery && (
                   <button 
                     onClick={() => setSearchQuery('')}
@@ -345,7 +311,6 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
                 )}
             </div>
 
-            {/* Sort Dropdown */}
             <div className="relative flex-grow md:flex-grow-0 w-full md:w-auto">
                 <select 
                     value={sortOption} 
@@ -372,7 +337,6 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-10">
-        {/* Tree Sidebar (Desktop) */}
         <aside className={`
           lg:w-80 flex-shrink-0 
           ${mobileFiltersOpen ? 'fixed inset-0 z-50 bg-white p-6 overflow-y-auto' : 'hidden lg:block bg-white'}
@@ -384,8 +348,6 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
 
           <div className="sticky top-24 max-h-[calc(100vh-100px)] overflow-y-auto pr-3 hide-scrollbar">
              {renderTree()}
-             
-             {/* Mobile specific apply button */}
              {mobileFiltersOpen && (
                 <button 
                   onClick={() => setMobileFiltersOpen(false)}
@@ -397,7 +359,6 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
           </div>
         </aside>
 
-        {/* Product Grid */}
         <div className="flex-1">
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
             {filteredProducts.length > 0 ? (
@@ -411,12 +372,24 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
                     <div className="relative h-64 bg-gray-50 p-8 flex items-center justify-center overflow-hidden group/image">
+                      {/* Robust Image Handling without useState in loop */}
                       {product.image ? (
-                         <img 
-                            src={product.image} 
-                            alt={product.name} 
-                            className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500"
-                          />
+                         <>
+                            {/* Fallback Icon (Behind image) */}
+                            <div className="absolute inset-0 flex items-center justify-center text-gray-200">
+                                <CategoryIcon className="h-24 w-24 opacity-50" />
+                            </div>
+                            {/* Main Image */}
+                            <img 
+                                src={product.image} 
+                                alt={product.name} 
+                                className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500 relative z-10 bg-white"
+                                loading="lazy"
+                                onError={(e) => {
+                                    e.currentTarget.style.display = 'none'; // Hide broken image to reveal icon
+                                }}
+                            />
+                         </>
                       ) : (
                          <div className="flex flex-col items-center justify-center text-gray-300">
                              <CategoryIcon className="h-24 w-24 mb-3 opacity-50" />
@@ -425,13 +398,12 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
                       )}
                       
                       {product.specDetails?.brand && (
-                        <span className="absolute top-5 left-5 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm border border-gray-100">
+                        <span className="absolute top-5 left-5 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm border border-gray-100 z-20">
                           {product.specDetails.brand}
                         </span>
                       )}
 
-                      {/* Hover Tooltip Overlay */}
-                      <div className="absolute inset-0 bg-black/85 opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex items-center justify-center p-8 text-white backdrop-blur-sm">
+                      <div className="absolute inset-0 bg-black/85 opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex items-center justify-center p-8 text-white backdrop-blur-sm z-30">
                         <div className="w-full space-y-3">
                             <h4 className="font-bold border-b border-gray-600 pb-2 mb-3 text-lg">{product.name}</h4>
                             {Object.entries(product.specDetails || {}).map(([key, value]) => (
@@ -451,13 +423,12 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
                       </div>
                       <h3 className="text-xl font-bold text-gray-900 mb-4 leading-snug">{product.name}</h3>
                       
-                      {/* Spec List */}
                       <div className="flex-grow mb-6">
                         {product.specDetails && Object.keys(product.specDetails).length > 0 ? (
                           <div className="space-y-2">
                             {Object.entries(product.specDetails)
-                              .filter(([key]) => key !== 'brand') // Brand is on the image
-                              .slice(0, 4) // Show top 4 specs
+                              .filter(([key]) => key !== 'brand')
+                              .slice(0, 4)
                               .map(([key, value]) => (
                                 <div key={key} className="flex items-center text-sm">
                                   <span className="w-2 h-2 rounded-full bg-gray-200 mr-3 flex-shrink-0"></span>
