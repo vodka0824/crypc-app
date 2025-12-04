@@ -244,7 +244,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
       // Component-specific estimates (Conservative Peak Values)
       const ESTIMATES: Partial<Record<Category, number>> = {
           [Category.MB]: 50,       // Chipset, VRM, Onboard Audio/LAN/Wifi overhead
-          [Category.RAM]: 15,      // Per kit/module (DDR5 runs hotter, includes RGB)
+          [Category.RAM]: 15,      // Per module estimate (DDR5 runs hotter, includes RGB)
           [Category.SSD]: 10,      // NVMe Gen4/5 peak write
           [Category.COOLER]: 35,   // Pump + Fans (Liquid AIO)
           [Category.AIR_COOLER]: 10,// Fan overhead
@@ -254,10 +254,18 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
       cartItems.forEach(item => {
           // 1. Explicit TDP from Specs (CPU & GPU are the biggest consumers)
           if (item.category === Category.CPU || item.category === Category.GPU) {
-              tdp += parseWattage(item.specDetails?.tdp);
+              tdp += parseWattage(item.specDetails?.tdp) * item.quantity;
               hasMajorComponents = true;
           } 
-          // 2. Estimated components based on Category
+          // 2. RAM Special handling for kits (*2 or x2)
+          else if (item.category === Category.RAM) {
+              const estimate = ESTIMATES[Category.RAM] || 0;
+              const nameLower = item.name.toLowerCase();
+              const isDualKit = nameLower.includes('*2') || nameLower.includes('x2');
+              const multiplier = isDualKit ? 2 : 1;
+              tdp += estimate * item.quantity * multiplier;
+          }
+          // 3. Other Estimated components based on Category
           else if (item.category in ESTIMATES) {
               const estimate = ESTIMATES[item.category as keyof typeof ESTIMATES] || 0;
               tdp += estimate * item.quantity;
