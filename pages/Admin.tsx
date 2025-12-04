@@ -275,11 +275,10 @@ const Admin: React.FC = () => {
   const buttonPrimaryClass = "bg-black border border-black text-white hover:bg-gray-800 shadow-md";
 
   return (
-    // Main Container: Fixed Height (Viewport - Navbar) to allow internal scrolling
-    // Navbar is 64px (h-16).
+    // Main Container: Full viewport height minus navbar. Flex column layout.
     <div className="h-[calc(100vh-64px)] flex flex-col bg-[#F5F5F7]">
       
-      {/* 1. Fixed Header Section (Non-scrolling) */}
+      {/* 1. Fixed Header Section */}
       <div className="flex-shrink-0 px-4 md:px-8 pt-6 pb-2 bg-[#F5F5F7] z-30">
         <AdminHeader isLoading={isLoading} />
 
@@ -305,7 +304,7 @@ const Admin: React.FC = () => {
               )}
            </div>
 
-           {/* Action Buttons (Unified UI) */}
+           {/* Action Buttons */}
            <div className="flex gap-3 shrink-0 overflow-x-auto hide-scrollbar pb-1 md:pb-0">
               <button onClick={() => setIsImporting(true)} className={`${buttonBaseClass} ${buttonSecondaryClass}`}>
                 <Upload className="h-4 w-4" /> <span className="whitespace-nowrap">匯入</span>
@@ -327,8 +326,8 @@ const Admin: React.FC = () => {
         />
       </div>
 
-      {/* 2. Scrollable Content Section */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-8 pb-24 custom-scrollbar">
+      {/* 2. Content Area (Flex Grow) - Contains the full-height table card */}
+      <div className="flex-1 min-h-0 px-4 md:px-8 pb-4">
         <ProductTable
           isLoading={isLoading}
           products={products}
@@ -342,7 +341,7 @@ const Admin: React.FC = () => {
         />
       </div>
 
-      {/* 3. Floating Action Toolbar (Fixed to bottom) */}
+      {/* 3. Floating Action Toolbar */}
       <BatchActionsToolbar
         selectedIds={selectedIds}
         isSameCategory={isSameCategory}
