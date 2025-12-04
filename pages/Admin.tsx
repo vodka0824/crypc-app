@@ -269,16 +269,23 @@ const Admin: React.FC = () => {
     });
   };
   
-  return (
-    <div className="max-w-7xl mx-auto px-4 py-8 md:py-10 pb-32">
-      {/* 1. Static Title (Scrolls away) */}
-      <AdminHeader isLoading={isLoading} />
+  // Unified Button Styles
+  const buttonBaseClass = "h-11 px-5 rounded-xl font-bold flex items-center gap-2 transition-all active:scale-95 shadow-sm";
+  const buttonSecondaryClass = "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300";
+  const buttonPrimaryClass = "bg-black border border-black text-white hover:bg-gray-800 shadow-md";
 
-      {/* 2. Sticky Toolbar Wrapper (Sticks to top) */}
-      <div className="sticky top-16 z-30 bg-[#F5F5F7]/95 backdrop-blur-sm pt-4 pb-2 space-y-4">
-        {/* Row 1: Search + Actions */}
-        <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between bg-white p-3 rounded-2xl shadow-sm border border-gray-200">
-           {/* Search Input (Moved here as requested) */}
+  return (
+    // Main Container: Fixed Height (Viewport - Navbar) to allow internal scrolling
+    // Navbar is 64px (h-16).
+    <div className="h-[calc(100vh-64px)] flex flex-col bg-[#F5F5F7]">
+      
+      {/* 1. Fixed Header Section (Non-scrolling) */}
+      <div className="flex-shrink-0 px-4 md:px-8 pt-6 pb-2 bg-[#F5F5F7] z-30">
+        <AdminHeader isLoading={isLoading} />
+
+        {/* Toolbar: Search + Actions */}
+        <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between bg-white p-3 rounded-2xl shadow-sm border border-gray-200 mb-4">
+           {/* Search Input */}
            <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input 
@@ -298,21 +305,21 @@ const Admin: React.FC = () => {
               )}
            </div>
 
-           {/* Action Buttons */}
-           <div className="flex gap-2 shrink-0 overflow-x-auto hide-scrollbar">
-              <button onClick={() => setIsImporting(true)} className="px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 flex items-center gap-2 shadow-sm font-bold active:scale-95 transition-all">
+           {/* Action Buttons (Unified UI) */}
+           <div className="flex gap-3 shrink-0 overflow-x-auto hide-scrollbar pb-1 md:pb-0">
+              <button onClick={() => setIsImporting(true)} className={`${buttonBaseClass} ${buttonSecondaryClass}`}>
                 <Upload className="h-4 w-4" /> <span className="whitespace-nowrap">匯入</span>
               </button>
-              <button onClick={resetToDefault} className="px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 flex items-center gap-2 font-bold active:scale-95 transition-all bg-white" title="重置為預設資料">
+              <button onClick={resetToDefault} className={`${buttonBaseClass} ${buttonSecondaryClass}`} title="重置為預設資料">
                 <Database className="h-4 w-4" /> <span className="whitespace-nowrap">初始化</span>
               </button>
-              <button onClick={handleAddNew} className="px-4 py-2.5 bg-black text-white rounded-xl hover:bg-gray-800 flex items-center gap-2 font-bold active:scale-95 transition-all shadow-md">
+              <button onClick={handleAddNew} className={`${buttonBaseClass} ${buttonPrimaryClass}`}>
                 <Plus className="h-4 w-4" /> <span className="whitespace-nowrap">新增</span>
               </button>
            </div>
         </div>
 
-        {/* Row 2: Category Filters */}
+        {/* Category Filters */}
         <FilterControls
           filterCategory={filterCategory}
           setFilterCategory={setFilterCategory}
@@ -320,8 +327,8 @@ const Admin: React.FC = () => {
         />
       </div>
 
-      {/* 3. Product Table (Header inside component is sticky relative to the table flow) */}
-      <div className="mt-4">
+      {/* 2. Scrollable Content Section */}
+      <div className="flex-1 overflow-y-auto px-4 md:px-8 pb-24 custom-scrollbar">
         <ProductTable
           isLoading={isLoading}
           products={products}
@@ -335,7 +342,7 @@ const Admin: React.FC = () => {
         />
       </div>
 
-      {/* 4. Floating Action Toolbar (Bottom) */}
+      {/* 3. Floating Action Toolbar (Fixed to bottom) */}
       <BatchActionsToolbar
         selectedIds={selectedIds}
         isSameCategory={isSameCategory}
