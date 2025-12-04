@@ -1,8 +1,9 @@
+
 // components/admin/ProductTable.tsx
 import React from 'react';
 import { Category, Product } from '../../types';
 import { categoryDisplayMap, categoryFilters } from '../../data/mockData';
-import { Loader2, Square, CheckSquare, Edit, Trash2, FileText } from 'lucide-react';
+import { Loader2, Square, CheckSquare, Edit, Trash2, FileText, Clock } from 'lucide-react';
 
 interface ProductTableProps {
   isLoading: boolean;
@@ -32,40 +33,58 @@ const ProductTable: React.FC<ProductTableProps> = ({
     ? categoryFilters[filterCategory as Category] || []
     : [];
 
+  const formatTime = (timestamp?: number) => {
+    if (!timestamp) return '-';
+    return new Date(timestamp).toLocaleString('zh-TW', {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+  };
+
+  // Sticky header offset calculation:
+  // Navbar (64px) + Toolbar (~80px) + Category Filters (~60px) ~= 204px
+  // Adjust based on actual UI. Using top-[190px] as a safe bet for desktop.
+  
   return (
-    <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-sm">
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
-          <thead className="bg-gray-50 border-b border-gray-200">
+    <div className="bg-white rounded-3xl border border-gray-200 shadow-sm relative isolate">
+      <div className="overflow-x-auto rounded-3xl">
+        <table className="w-full text-left border-collapse min-w-[1000px]">
+          <thead className="bg-gray-50 border-b border-gray-200 sticky top-[190px] z-20 shadow-sm">
             <tr>
-              <th className="px-6 py-4 w-12 sticky left-0 bg-gray-50 z-10">
+              <th className="px-6 py-4 w-12 sticky left-0 bg-gray-50 z-20">
                 <button onClick={onSelectAll} className="flex items-center text-gray-500 hover:text-black">
                   {selectedIds.size > 0 && selectedIds.size === filteredProducts.length ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
                 </button>
               </th>
-              <th className="px-6 py-4 font-bold text-gray-900 min-w-[240px]">商品名稱 / ID</th>
+              <th className="px-6 py-4 font-bold text-gray-900 w-[240px]">商品名稱 / ID</th>
               
               {isAllCategories ? (
                 <>
                   <th className="px-6 py-4 font-bold text-gray-900 w-32 whitespace-nowrap">分類</th>
-                  <th className="px-6 py-4 font-bold text-gray-900 min-w-[300px]">規格詳情</th>
+                  <th className="px-6 py-4 font-bold text-gray-900 min-w-[200px]">規格詳情</th>
                 </>
               ) : dynamicSpecs.length > 0 ? (
-                dynamicSpecs.slice(0, 5).map(spec => (
+                dynamicSpecs.slice(0, 4).map(spec => (
                   <th key={spec.key} className="px-4 py-4 font-bold text-gray-700 whitespace-nowrap">{spec.label}</th>
                 ))
               ) : (
                 <th className="px-6 py-4 font-bold text-gray-900">分類</th>
               )}
               
-              <th className="px-6 py-4 font-bold text-gray-900 text-right whitespace-nowrap">價格</th>
-              <th className="px-6 py-4 font-bold text-gray-900 text-right w-32 sticky right-0 bg-gray-50 z-10">操作</th>
+              <th className="px-6 py-4 font-bold text-gray-900 text-right whitespace-nowrap w-28">價格</th>
+              <th className="px-6 py-4 font-bold text-gray-900 whitespace-nowrap w-32">
+                <div className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> 最後更新</div>
+              </th>
+              <th className="px-6 py-4 font-bold text-gray-900 text-right w-24 sticky right-0 bg-gray-50 z-20">操作</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {isLoading ? (
               <tr>
-                <td colSpan={isAllCategories ? 6 : Math.min(dynamicSpecs.length, 5) + 4} className="p-12 text-center text-gray-400">
+                <td colSpan={10} className="p-12 text-center text-gray-400">
                   <div className="flex flex-col items-center gap-3">
                     <Loader2 className="h-8 w-8 animate-spin" />
                     <span>讀取資料中...</span>
@@ -74,7 +93,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
               </tr>
             ) : filteredProducts.length === 0 ? (
               <tr>
-                <td colSpan={isAllCategories ? 6 : Math.min(dynamicSpecs.length, 5) + 4} className="p-12 text-center text-gray-400">
+                <td colSpan={10} className="p-12 text-center text-gray-400">
                   {products.length === 0 ? '資料庫為空，請點擊上方「初始化」按鈕寫入預設資料。' : '找不到符合搜尋條件的商品'}
                 </td>
               </tr>
@@ -98,7 +117,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                           </div>
                         )}
                         <div className="min-w-0">
-                          <div className="font-bold text-gray-900 leading-tight">{product.name}</div>
+                          <div className="font-bold text-gray-900 leading-tight line-clamp-2" title={product.name}>{product.name}</div>
                           <div className="text-xs text-gray-400 font-mono mt-0.5">{product.id}</div>
                         </div>
                       </div>
@@ -116,9 +135,9 @@ const ProductTable: React.FC<ProductTableProps> = ({
                             {product.specDetails && Object.keys(product.specDetails).length > 0 ? (
                               Object.entries(product.specDetails)
                                 .filter(([key]) => key !== 'brand')
-                                .slice(0, 8)
+                                .slice(0, 6)
                                 .map(([key, value]) => (
-                                  <span key={key} className="inline-flex items-center px-1.5 py-0.5 rounded bg-white border border-gray-200 text-[10px] text-gray-600">
+                                  <span key={key} className="inline-flex items-center px-1.5 py-0.5 rounded bg-white border border-gray-200 text-[10px] text-gray-600 whitespace-nowrap">
                                     <span className="font-semibold text-gray-400 mr-1 capitalize">{key}:</span> {value}
                                   </span>
                                 ))
@@ -129,10 +148,10 @@ const ProductTable: React.FC<ProductTableProps> = ({
                         </td>
                       </>
                     ) : dynamicSpecs.length > 0 ? (
-                      dynamicSpecs.slice(0, 5).map(spec => (
+                      dynamicSpecs.slice(0, 4).map(spec => (
                         <td key={spec.key} className="px-4 py-4 text-sm text-gray-600">
                           {product.specDetails?.[spec.key] ? (
-                            <span className="bg-white px-2 py-1 rounded text-xs font-medium text-gray-700 border border-gray-200">
+                            <span className="bg-white px-2 py-1 rounded text-xs font-medium text-gray-700 border border-gray-200 whitespace-nowrap">
                               {product.specDetails[spec.key]}
                             </span>
                           ) : <span className="text-gray-300">-</span>}
@@ -148,6 +167,9 @@ const ProductTable: React.FC<ProductTableProps> = ({
 
                     <td className="px-6 py-4 font-bold text-right text-gray-900 tabular-nums">
                       {product.price.toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 text-xs text-gray-500 font-mono whitespace-nowrap">
+                        {formatTime(product.lastUpdated)}
                     </td>
                     <td className="px-6 py-4 text-right sticky right-0 bg-white group-hover:bg-gray-50 z-10 transition-colors">
                       <div className="flex justify-end gap-2">
