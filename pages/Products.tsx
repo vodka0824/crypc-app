@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Category, Product, ProductSpecs } from '../types';
-import { Filter, ShoppingBag, X, ChevronDown, ChevronRight, SlidersHorizontal, Check, Home, Cpu, CircuitBoard, CreditCard, HardDrive, Monitor, Disc, Fan, Box, Layers, Wind, Search } from 'lucide-react';
+import { Filter, ShoppingBag, X, ChevronDown, ChevronRight, SlidersHorizontal, Check, Home, Cpu, CircuitBoard, HardDrive, Monitor, Disc, Box, Wind, Search, MemoryStick, Gamepad2, Droplets, Zap, Mouse } from 'lucide-react';
 import { categoryFilters, categoryDisplayMap } from '../data/mockData';
 import { useProducts } from '../contexts/ProductContext';
 
@@ -155,15 +155,16 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
     switch (category) {
       case Category.CPU: return Cpu;
       case Category.MB: return CircuitBoard;
-      case Category.GPU: return Layers; // Or generic layer/card icon
-      case Category.RAM: return CreditCard; // Resembles RAM stick
+      case Category.GPU: return Gamepad2;
+      case Category.RAM: return MemoryStick;
       case Category.SSD: return HardDrive;
       case Category.CASE: return Box;
-      case Category.PSU: return CircuitBoard; // No good PSU icon, reuse circuit
-      case Category.COOLER: return Fan; // Liquid
-      case Category.AIR_COOLER: return Wind; // Air
+      case Category.PSU: return Zap;
+      case Category.COOLER: return Droplets;
+      case Category.AIR_COOLER: return Wind;
       case Category.MONITOR: return Monitor;
       case Category.SOFTWARE: return Disc;
+      case Category.OTHERS: return Mouse;
       default: return Box;
     }
   };
