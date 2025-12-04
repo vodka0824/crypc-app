@@ -1,7 +1,9 @@
+
 import React, { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useProducts } from '../contexts/ProductContext';
 import { Category, Product, ProductSpecs } from '../types';
+import { Upload, Database, Plus, Search, X } from 'lucide-react';
 
 import AdminHeader from '../components/admin/AdminHeader';
 import FilterControls from '../components/admin/FilterControls';
@@ -269,33 +271,71 @@ const Admin: React.FC = () => {
   
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 md:py-10 pb-32">
-      <AdminHeader
-        isLoading={isLoading}
-        onAddNew={handleAddNew}
-        onImport={() => setIsImporting(true)}
-        onReset={resetToDefault}
-      />
+      {/* 1. Static Title (Scrolls away) */}
+      <AdminHeader isLoading={isLoading} />
 
-      <FilterControls
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        filterCategory={filterCategory}
-        setFilterCategory={setFilterCategory}
-        productCount={products.length}
-      />
+      {/* 2. Sticky Toolbar Wrapper (Sticks to top) */}
+      <div className="sticky top-16 z-30 bg-[#F5F5F7]/95 backdrop-blur-sm pt-4 pb-2 space-y-4">
+        {/* Row 1: Search + Actions */}
+        <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between bg-white p-3 rounded-2xl shadow-sm border border-gray-200">
+           {/* Search Input (Moved here as requested) */}
+           <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input 
+                type="text" 
+                placeholder="搜尋商品名稱、ID..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-12 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-black focus:border-transparent focus:bg-white transition-all font-medium"
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900 p-1.5 rounded-full hover:bg-gray-200 transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+           </div>
 
-      <ProductTable
-        isLoading={isLoading}
-        products={products}
-        filteredProducts={filteredProducts}
-        filterCategory={filterCategory}
-        selectedIds={selectedIds}
-        onSelectAll={toggleSelectAll}
-        onSelectOne={toggleSelectOne}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-      />
+           {/* Action Buttons */}
+           <div className="flex gap-2 shrink-0 overflow-x-auto hide-scrollbar">
+              <button onClick={() => setIsImporting(true)} className="px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 flex items-center gap-2 shadow-sm font-bold active:scale-95 transition-all">
+                <Upload className="h-4 w-4" /> <span className="whitespace-nowrap">匯入</span>
+              </button>
+              <button onClick={resetToDefault} className="px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 flex items-center gap-2 font-bold active:scale-95 transition-all bg-white" title="重置為預設資料">
+                <Database className="h-4 w-4" /> <span className="whitespace-nowrap">初始化</span>
+              </button>
+              <button onClick={handleAddNew} className="px-4 py-2.5 bg-black text-white rounded-xl hover:bg-gray-800 flex items-center gap-2 font-bold active:scale-95 transition-all shadow-md">
+                <Plus className="h-4 w-4" /> <span className="whitespace-nowrap">新增</span>
+              </button>
+           </div>
+        </div>
 
+        {/* Row 2: Category Filters */}
+        <FilterControls
+          filterCategory={filterCategory}
+          setFilterCategory={setFilterCategory}
+          productCount={products.length}
+        />
+      </div>
+
+      {/* 3. Product Table (Header inside component is sticky relative to the table flow) */}
+      <div className="mt-4">
+        <ProductTable
+          isLoading={isLoading}
+          products={products}
+          filteredProducts={filteredProducts}
+          filterCategory={filterCategory}
+          selectedIds={selectedIds}
+          onSelectAll={toggleSelectAll}
+          onSelectOne={toggleSelectOne}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+        />
+      </div>
+
+      {/* 4. Floating Action Toolbar (Bottom) */}
       <BatchActionsToolbar
         selectedIds={selectedIds}
         isSameCategory={isSameCategory}
@@ -310,6 +350,7 @@ const Admin: React.FC = () => {
         onClearSelection={() => setSelectedIds(new Set())}
       />
 
+      {/* Modals */}
       <ProductEditModal
         isOpen={isEditing}
         onClose={() => setIsEditing(false)}
