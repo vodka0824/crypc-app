@@ -5,6 +5,7 @@ import { Category, Product } from '../../types';
 import { useProducts } from '../../contexts/ProductContext';
 import { FileSpreadsheet, X, FileUp, Download, ArrowRight, CheckCircle, RotateCcw, AlertTriangle, RefreshCw } from 'lucide-react';
 import { categoryDisplayMap } from '../../data/mockData';
+import toast from 'react-hot-toast';
 
 const isValidCategory = (cat: string): cat is Category => {
   return Object.values(Category).includes(cat as Category);
@@ -141,7 +142,7 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({ isOpen, onClose
       });
       setPreviewItems(previews);
     } catch (e: any) {
-      alert(`解析失敗: ${e.message}`);
+      toast.error(`解析失敗: ${e.message}`);
     }
   };
 
@@ -155,11 +156,14 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({ isOpen, onClose
       const { status, errorMessage, originalPrice, ...product } = i;
       return { specDetails: {}, lastUpdated: Date.now(), ...product } as Product;
     });
-    if (validItems.length === 0) { alert('沒有有效的資料可匯入'); return; }
+    if (validItems.length === 0) { 
+        toast.error('沒有有效的資料可匯入'); 
+        return; 
+    }
     
     await importProducts(validItems);
     
-    alert(`成功匯入 ${validItems.length} 筆資料`);
+    // toast.success is handled in context
     closeModal();
   };
 
