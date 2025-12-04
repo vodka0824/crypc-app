@@ -129,21 +129,47 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
     return match ? parseInt(match[0]) : 9999;
   }
 
+  // --- Advanced Power Calculation Logic ---
   const totalTDP = useMemo(() => {
       let tdp = 0;
+      let hasMajorComponents = false;
+
+      // Component-specific estimates (Conservative Peak Values)
+      const ESTIMATES: Partial<Record<Category, number>> = {
+          [Category.MB]: 50,       // Chipset, VRM, Onboard Audio/LAN/Wifi overhead
+          [Category.RAM]: 15,      // Per kit/module (DDR5 runs hotter, includes RGB)
+          [Category.SSD]: 10,      // NVMe Gen4/5 peak write
+          [Category.COOLER]: 35,   // Pump + Fans (Liquid AIO)
+          [Category.AIR_COOLER]: 10,// Fan overhead
+          [Category.CASE]: 10      // Front panel USB, simple controller
+      };
+
       cartItems.forEach(item => {
+          // 1. Explicit TDP from Specs (CPU & GPU are the biggest consumers)
           if (item.category === Category.CPU || item.category === Category.GPU) {
               tdp += parseWattage(item.specDetails?.tdp);
+              hasMajorComponents = true;
+          } 
+          // 2. Estimated components based on Category
+          else if (item.category in ESTIMATES) {
+              const estimate = ESTIMATES[item.category as keyof typeof ESTIMATES] || 0;
+              tdp += estimate * item.quantity;
           }
       });
-      // Base system power buffer (Fans, SSDs, RGB)
-      return tdp > 0 ? tdp + 50 : 0;
+
+      // 3. Base System Buffer
+      // Covers: Fans (3-5W each), USB peripherals (Keyboard/Mouse ~5W), RGB Strips, Efficiency loss margin
+      // Only apply buffer if we actually have components selected
+      const baseBuffer = hasMajorComponents ? 30 : 0;
+
+      return tdp + baseBuffer;
   }, [cartItems]);
 
   const recommendedPsuWattage = useMemo(() => {
       if (totalTDP === 0) return 0;
-      // Simple logic: Total TDP * 1.5 rounded up to nearest 50
-      return Math.ceil((totalTDP * 1.5) / 50) * 50;
+      // Safety factor: Total Power * 1.3 to 1.5 usually recommended for peak load & efficiency curve
+      // Rounded up to nearest 50W
+      return Math.ceil((totalTDP * 1.3) / 50) * 50;
   }, [totalTDP]);
 
   // --- Compatibility Validation Logic (Enhanced) ---
