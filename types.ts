@@ -50,6 +50,7 @@ export interface Product {
   specDetails?: ProductSpecs; // 用於篩選的詳細規格數據
   discount?: number;
   lastUpdated?: number; // Timestamp
+  popularity?: number;  // Used for ranking products (e.g. quick picks)
 }
 
 export interface CartItem extends Product {
