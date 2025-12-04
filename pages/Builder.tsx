@@ -350,29 +350,6 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
     return null;
   };
 
-  // --- Quick Picks Logic (Rank by Popularity) ---
-  const getQuickPicks = (category: Category) => {
-    // 1. Get products in category
-    let candidates = allProducts.filter(p => p.category === category);
-
-    // 2. Filter Compatible Items Only (Basic Logic)
-    candidates = candidates.filter(p => checkCompatibility(p) === null);
-
-    // 3. Sort/Rank by Popularity Descending (Fallback to Price if equal/missing)
-    candidates.sort((a, b) => {
-        // Use type assertion to avoid TS error if types.ts update is delayed/cached
-        const popA = (a as any).popularity || 0;
-        const popB = (b as any).popularity || 0;
-        if (popA !== popB) {
-            return popB - popA; // Higher popularity first
-        }
-        return b.price - a.price; // Then higher price (flagship)
-    });
-    
-    return candidates.slice(0, 3);
-  };
-
-
   // --- Handlers ---
   const handleOpenSelection = (category: Category) => {
     setReplacingItemId(null); // Ensure we are in add mode, not replace mode
@@ -767,7 +744,6 @@ ${cartItems.map(item => `${item.category}: ${item.name} x${item.quantity} - $${(
             const items = build[slot.category] || [];
             const hasItems = items.length > 0;
             const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            const quickPicks = !hasItems ? getQuickPicks(slot.category) : [];
 
             return (
                 <div key={slot.category} className={`
@@ -810,47 +786,6 @@ ${cartItems.map(item => `${item.category}: ${item.name} x${item.quantity} - $${(
                                     <span className="font-bold text-sm md:text-lg text-gray-500 group-hover:text-black transition-colors">{slot.label}</span>
                                     <span className="text-xs text-gray-400 hidden md:block">點擊選擇商品</span>
                                 </div>
-                            </div>
-
-                            {/* Desktop Quick Picks */}
-                            <div className="hidden md:flex gap-3 overflow-x-auto pb-1 max-w-[60%] justify-end">
-                                {quickPicks.map(pick => (
-                                    <div 
-                                        key={pick.id} 
-                                        className="flex-shrink-0 w-48 bg-white border border-gray-100 rounded-lg p-2 hover:border-black hover:shadow-md transition-all cursor-pointer group/pick relative"
-                                        onClick={() => handleSelectProduct(pick, 1)}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            {/* Thumbnail */}
-                                            <div className="w-10 h-10 bg-gray-50 rounded flex items-center justify-center overflow-hidden flex-shrink-0 border border-gray-100">
-                                                {pick.image ? (
-                                                    <img src={pick.image} alt="" className="w-full h-full object-contain p-0.5 mix-blend-multiply" />
-                                                ) : (
-                                                    <Box className="h-4 w-4 text-gray-300" />
-                                                )}
-                                            </div>
-                                            
-                                            <div className="flex-1 min-w-0">
-                                                <div className="text-xs font-bold text-gray-800 line-clamp-1 group-hover/pick:text-black">{pick.name}</div>
-                                                <div className="text-[10px] text-gray-500 flex justify-between items-center mt-0.5">
-                                                    <span className="font-mono text-black font-bold">${pick.price.toLocaleString()}</span>
-                                                    <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 group-hover/pick:bg-black group-hover/pick:text-white transition-colors">
-                                                        <Plus className="h-3 w-3" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                                {quickPicks.length > 0 && (
-                                    <button 
-                                        onClick={() => handleOpenSelection(slot.category)}
-                                        className="flex-shrink-0 w-8 flex items-center justify-center bg-gray-50 rounded-lg border border-transparent hover:bg-gray-100 text-gray-400"
-                                        title="查看更多"
-                                    >
-                                        <ChevronRight className="h-4 w-4" />
-                                    </button>
-                                )}
                             </div>
 
                             {/* Mobile Simple Action */}
