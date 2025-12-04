@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { Product } from '../types';
 import { initialProducts } from '../data/mockData';
@@ -11,6 +12,7 @@ import {
   writeBatch, 
   updateDoc
 } from 'firebase/firestore';
+import toast from 'react-hot-toast';
 
 interface ProductContextType {
   products: Product[];
@@ -40,8 +42,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       },
       (error) => {
         console.error("Firebase Snapshot Error:", error);
-        // Fallback to mock data only if firebase fails completely or is empty on first load?
-        // For now, we just log error.
+        toast.error("無法連接至資料庫");
         setIsLoading(false);
       }
     );
@@ -59,7 +60,8 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       });
     } catch (e) {
       console.error("Error adding product: ", e);
-      alert("新增失敗，請檢查網路或 Firebase 設定");
+      toast.error("新增失敗，請檢查網路連線");
+      throw e;
     }
   };
 
@@ -72,7 +74,8 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       });
     } catch (e) {
       console.error("Error updating product: ", e);
-      alert("更新失敗");
+      toast.error("更新失敗");
+      throw e;
     }
   };
 
@@ -81,7 +84,8 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       await deleteDoc(doc(db, "products", id));
     } catch (e) {
       console.error("Error deleting product: ", e);
-      alert("刪除失敗");
+      toast.error("刪除失敗");
+      throw e;
     }
   };
 
@@ -95,19 +99,19 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     try {
       await batch.commit();
+      toast.success(`成功匯入 ${newProducts.length} 筆商品`);
     } catch (e) {
       console.error("Error batch importing: ", e);
-      alert("批次匯入失敗");
+      toast.error("批次匯入失敗");
+      throw e;
     }
   };
 
   const resetToDefault = async () => {
-    if (!window.confirm("這將會清除資料庫中所有現有商品，並重置為預設資料。確定嗎？")) return;
-    
+    // Confirmation moved to UI layer (Admin.tsx)
     setIsLoading(true);
     try {
-      // 1. Delete all existing documents (Client-side deletion is not efficient for huge datasets, but fine for small shops)
-      // Since we can't easily "delete collection" from client SDK, we list and delete.
+      // 1. Delete all existing documents
       const batchDelete = writeBatch(db);
       products.forEach(p => {
         const docRef = doc(db, "products", p.id);
@@ -123,10 +127,11 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       });
       await batchAdd.commit();
       
-      alert("資料庫已重置為預設值！");
+      toast.success("資料庫已重置為預設值！");
     } catch (e) {
       console.error("Error resetting DB: ", e);
-      alert("重置失敗，請檢查權限");
+      toast.error("重置失敗，請檢查權限");
+      throw e;
     } finally {
       setIsLoading(false);
     }
