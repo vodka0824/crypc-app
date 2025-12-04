@@ -58,25 +58,27 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 </button>
               </th>
               
+              {/* Name/ID stays LEFT aligned */}
               <th className="px-4 py-3 text-sm font-bold text-gray-500 uppercase tracking-wider w-[250px] min-w-[250px]">商品名稱 / ID</th>
               
+              {/* All other columns right aligned */}
               {isAllCategories ? (
                 <>
-                  <th className="px-4 py-3 text-sm font-bold text-gray-500 uppercase tracking-wider w-24 whitespace-nowrap">分類</th>
+                  <th className="px-4 py-3 text-sm font-bold text-gray-500 uppercase tracking-wider w-24 whitespace-nowrap text-right">分類</th>
                   {/* Flexible width for specs to take up remaining space */}
-                  <th className="px-4 py-3 text-sm font-bold text-gray-500 uppercase tracking-wider min-w-[300px]">規格詳情</th>
+                  <th className="px-4 py-3 text-sm font-bold text-gray-500 uppercase tracking-wider min-w-[300px] text-right">規格詳情</th>
                 </>
               ) : dynamicSpecs.length > 0 ? (
                 dynamicSpecs.slice(0, 4).map(spec => (
-                  <th key={spec.key} className="px-4 py-3 text-sm font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">{spec.label}</th>
+                  <th key={spec.key} className="px-4 py-3 text-sm font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap text-right">{spec.label}</th>
                 ))
               ) : (
-                <th className="px-4 py-3 text-sm font-bold text-gray-500 uppercase tracking-wider">分類</th>
+                <th className="px-4 py-3 text-sm font-bold text-gray-500 uppercase tracking-wider text-right">分類</th>
               )}
               
               <th className="px-4 py-3 text-sm font-bold text-gray-500 uppercase tracking-wider text-right w-28 whitespace-nowrap">價格</th>
-              <th className="px-4 py-3 text-sm font-bold text-gray-500 uppercase tracking-wider w-36 whitespace-nowrap">
-                <div className="flex items-center gap-1"><Clock className="h-3 w-3" /> 最後更新</div>
+              <th className="px-4 py-3 text-sm font-bold text-gray-500 uppercase tracking-wider w-36 whitespace-nowrap text-right">
+                <div className="flex items-center gap-1 justify-end"><Clock className="h-3 w-3" /> 最後更新</div>
               </th>
               <th className="px-4 py-3 text-sm font-bold text-gray-500 uppercase tracking-wider text-right w-24 sticky right-0 bg-gray-50 z-20">操作</th>
             </tr>
@@ -126,13 +128,13 @@ const ProductTable: React.FC<ProductTableProps> = ({
                     
                     {isAllCategories ? (
                       <>
-                        <td className="px-4 py-4 align-top">
+                        <td className="px-4 py-4 align-top text-right">
                           <span className="inline-block px-2.5 py-1 bg-gray-100 text-gray-600 font-bold text-xs rounded-md border border-gray-200 whitespace-nowrap">
                             {categoryDisplayMap[product.category]}
                           </span>
                         </td>
                         <td className="px-4 py-4 align-top">
-                          <div className="flex flex-wrap gap-1.5">
+                          <div className="flex flex-wrap gap-1.5 justify-end">
                             {product.specDetails && Object.keys(product.specDetails).length > 0 ? (
                               Object.entries(product.specDetails)
                                 .filter(([key]) => key !== 'brand')
@@ -150,7 +152,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                       </>
                     ) : dynamicSpecs.length > 0 ? (
                       dynamicSpecs.slice(0, 4).map(spec => (
-                        <td key={spec.key} className="px-4 py-4 align-top">
+                        <td key={spec.key} className="px-4 py-4 align-top text-right">
                           {product.specDetails?.[spec.key] ? (
                             <span className="bg-white px-2.5 py-1 rounded text-xs font-medium text-gray-700 border border-gray-200 whitespace-nowrap">
                               {product.specDetails[spec.key]}
@@ -159,7 +161,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                         </td>
                       ))
                     ) : (
-                      <td className="px-4 py-4 align-top">
+                      <td className="px-4 py-4 align-top text-right">
                         <span className="inline-block px-2.5 py-1 bg-gray-100 text-gray-600 font-bold text-xs rounded-md border border-gray-200">
                           {categoryDisplayMap[product.category]}
                         </span>
@@ -169,7 +171,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                     <td className="px-4 py-4 font-bold text-right text-gray-900 tabular-nums text-base align-top">
                       {product.price.toLocaleString()}
                     </td>
-                    <td className="px-4 py-4 text-xs text-gray-400 font-mono whitespace-nowrap align-top pt-5">
+                    <td className="px-4 py-4 text-xs text-gray-400 font-mono whitespace-nowrap align-top pt-5 text-right">
                         {formatTime(product.lastUpdated)}
                     </td>
                     <td className="px-4 py-4 text-right sticky right-0 bg-white group-hover:bg-gray-50 z-10 transition-colors align-top">
