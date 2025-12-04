@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useProducts } from '../contexts/ProductContext';
 import { Category, Product, ProductSpecs } from '../types';
-import { Upload, Database, Plus, Search, X } from 'lucide-react';
+import { Upload, Database, Plus, Search, X, DollarSign, Loader2 } from 'lucide-react';
 
 import AdminHeader from '../components/admin/AdminHeader';
 import FilterControls from '../components/admin/FilterControls';
@@ -44,6 +44,10 @@ const Admin: React.FC = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBatchSpecEditing, setIsBatchSpecEditing] = useState(false);
   const [batchSpecData, setBatchSpecData] = useState<Partial<ProductSpecs>>({});
+  
+  // Price Update State (replaces prompt)
+  const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
+  const [priceUpdateInput, setPriceUpdateInput] = useState('');
 
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
@@ -139,6 +143,26 @@ const Admin: React.FC = () => {
     });
   };
 
+  const handleResetDb = () => {
+    setConfirmationState({
+      isOpen: true,
+      title: '確認重置資料庫',
+      message: <p>這將會清除資料庫中所有現有商品，並重置為預設資料。<br/><strong className="text-red-600">警告：此操作無法復原。</strong></p>,
+      onConfirm: async () => {
+        setIsSubmitting(true);
+        try {
+          await resetToDefault();
+          // Toasts are handled in context
+          closeConfirmationModal();
+        } catch (error) {
+          // Errors handled in context
+        } finally {
+          setIsSubmitting(false);
+        }
+      }
+    });
+  };
+
   const toggleSelectAll = () => {
     if (selectedIds.size === filteredProducts.length && filteredProducts.length > 0) {
       setSelectedIds(new Set());
@@ -179,9 +203,10 @@ const Admin: React.FC = () => {
     });
   };
 
-  const handleBatchPriceUpdate = () => {
-    const input = prompt('請輸入價格調整方式：\n例如："+100", "-50", "*1.1", 或直接輸入數字 "12000"');
-    if (!input || input.trim() === '') return;
+  // Replaces the prompt() logic
+  const executeBatchPriceUpdate = async () => {
+    const input = priceUpdateInput.trim();
+    if (!input) return;
   
     const updates: Product[] = [];
     selectedIds.forEach(id => {
@@ -189,6 +214,7 @@ const Admin: React.FC = () => {
       if (product) {
         let newPrice = product.price;
         const value = parseFloat(input.substring(1));
+        
         if (input.startsWith('*')) newPrice = Math.round(product.price * value);
         else if (input.startsWith('+')) newPrice = product.price + parseInt(input.substring(1));
         else if (input.startsWith('-')) newPrice = Math.max(0, product.price - parseInt(input.substring(1)));
@@ -201,23 +227,24 @@ const Admin: React.FC = () => {
     });
   
     if (updates.length > 0) {
-      (async () => {
-        setIsSubmitting(true);
-        const toastId = toast.loading(`正在更新 ${updates.length} 筆價格...`);
-        try {
-          for (const p of updates) {
-            await updateProduct(p);
-          }
-          toast.success(`成功更新 ${updates.length} 筆價格`, { id: toastId });
-          setSelectedIds(new Set());
-        } catch (error) {
-          toast.error('批次更新價格失敗', { id: toastId });
-        } finally {
-          setIsSubmitting(false);
+      setIsSubmitting(true);
+      const toastId = toast.loading(`正在更新 ${updates.length} 筆價格...`);
+      try {
+        for (const p of updates) {
+          await updateProduct(p);
         }
-      })();
+        toast.success(`成功更新 ${updates.length} 筆價格`, { id: toastId });
+        setSelectedIds(new Set());
+        setIsPriceModalOpen(false);
+        setPriceUpdateInput('');
+      } catch (error) {
+        toast.error('批次更新價格失敗', { id: toastId });
+      } finally {
+        setIsSubmitting(false);
+      }
     } else {
       toast.error('沒有商品價格需要更新');
+      setIsPriceModalOpen(false);
     }
   };
   
@@ -310,7 +337,7 @@ const Admin: React.FC = () => {
                 <button onClick={() => setIsImporting(true)} className={`${buttonBaseClass} ${buttonSecondaryClass}`}>
                     <Upload className="h-4 w-4" /> <span className="whitespace-nowrap">匯入</span>
                 </button>
-                <button onClick={resetToDefault} className={`${buttonBaseClass} ${buttonSecondaryClass}`} title="重置為預設資料">
+                <button onClick={handleResetDb} className={`${buttonBaseClass} ${buttonSecondaryClass}`} title="重置為預設資料">
                     <Database className="h-4 w-4" /> <span className="whitespace-nowrap">初始化</span>
                 </button>
                 <button onClick={handleAddNew} className={`${buttonBaseClass} ${buttonPrimaryClass}`}>
@@ -351,7 +378,7 @@ const Admin: React.FC = () => {
         isSameCategory={isSameCategory}
         commonCategory={commonCategory}
         onBatchDelete={handleBatchDelete}
-        onBatchPriceUpdate={handleBatchPriceUpdate}
+        onBatchPriceUpdate={() => { setIsPriceModalOpen(true); setPriceUpdateInput(''); }}
         onOpenBatchSpecEdit={() => {
             if (!isSameCategory) return;
             setBatchSpecData({});
@@ -396,6 +423,59 @@ const Admin: React.FC = () => {
       >
         {confirmationState.message}
       </ConfirmationModal>
+
+      {/* Inline Modal for Price Update */}
+      {isPriceModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsPriceModalOpen(false)} />
+          <div className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 animate-fade-in">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold flex items-center gap-2 text-gray-900">
+                <DollarSign className="h-5 w-5 text-black" />
+                批次調整價格
+              </h3>
+              <button onClick={() => setIsPriceModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="mb-6 space-y-3">
+              <p className="text-gray-600 text-sm">請輸入調整方式：</p>
+              <ul className="text-xs text-gray-500 list-disc list-inside bg-gray-50 p-3 rounded-lg">
+                <li><code className="bg-gray-200 px-1 rounded text-black">+100</code> : 全部加 100 元</li>
+                <li><code className="bg-gray-200 px-1 rounded text-black">-50</code> : 全部減 50 元</li>
+                <li><code className="bg-gray-200 px-1 rounded text-black">*1.1</code> : 全部漲價 10%</li>
+                <li><code className="bg-gray-200 px-1 rounded text-black">12000</code> : 全部設定為 12000 元</li>
+              </ul>
+              <input 
+                type="text" 
+                autoFocus
+                value={priceUpdateInput}
+                onChange={(e) => setPriceUpdateInput(e.target.value)}
+                placeholder="例如: *0.9 (打九折)"
+                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-black focus:border-transparent font-mono text-lg"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => setIsPriceModalOpen(false)} 
+                disabled={isSubmitting}
+                className="px-5 py-2.5 border border-gray-200 bg-white text-gray-700 rounded-lg font-bold text-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                取消
+              </button>
+              <button 
+                onClick={executeBatchPriceUpdate}
+                disabled={isSubmitting || !priceUpdateInput.trim()}
+                className="px-6 py-2.5 bg-black text-white rounded-lg font-bold text-sm hover:bg-gray-800 transition-colors flex items-center gap-2 shadow-md hover:shadow-lg disabled:opacity-50"
+              >
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : '確認調整'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
