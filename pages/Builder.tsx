@@ -668,7 +668,8 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                                             <div className="absolute inset-0 flex items-center justify-center text-gray-200">
                                                 <slot.icon className="h-6 w-6 opacity-50" />
                                             </div>
-                                            {item.image && (
+                                            {/* Only show image if Category is CASE */}
+                                            {item.category === Category.CASE && item.image && (
                                                 <img 
                                                     src={item.image} 
                                                     alt={item.name} 
@@ -747,15 +748,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                                             <div className="absolute inset-0 flex items-center justify-center">
                                                 <ItemIcon className="h-4 w-4 text-gray-400" />
                                             </div>
-                                            {item.image && (
-                                                <img 
-                                                    src={item.image} 
-                                                    className="w-full h-full object-contain z-10 relative" 
-                                                    alt="" 
-                                                    loading="lazy"
-                                                    onError={(e) => e.currentTarget.style.display = 'none'}
-                                                />
-                                            )}
+                                            {/* Removed image rendering in summary */}
                                         </div>
                                         <div className="min-w-0">
                                             <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded inline-block mb-1 mr-1">{categoryDisplayMap[item.category]?.split(' ')[0] || '其它'}</span>
@@ -827,40 +820,6 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
       {isAiModalOpen && (
         <div className="fixed inset-0 z-[75] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={() => setIsAiModalOpen(false)} />
-            <div className="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl p-8 animate-fade-in border border-white/20">
-                <div className="flex justify-between items-start mb-6">
-                    <div className="flex items-center gap-3">
-                        <div className="p-3 bg-black rounded-xl text-white"><Bot className="h-6 w-6" /></div>
-                        <div><h2 className="text-2xl font-bold text-gray-900">AI 智能配單</h2><p className="text-sm text-gray-500">告訴我需求，剩下的交給我。</p></div>
-                    </div>
-                    <button onClick={() => setIsAiModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full"><X className="h-6 w-6" /></button>
-                </div>
-                {!aiExplanation ? (
-                    <div className="space-y-6">
-                         <div>
-                             <label className="block text-sm font-bold text-gray-700 mb-2">預算上限 (NT$)</label>
-                             <div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span><input type="number" value={aiBudget} onChange={(e) => setAiBudget(e.target.value)} className="w-full pl-8 pr-4 py-4 bg-gray-50 border-transparent focus:bg-white focus:border-black focus:ring-0 rounded-xl font-bold text-lg transition-all" placeholder="30000" /></div>
-                         </div>
-                         <div>
-                             <label className="block text-sm font-bold text-gray-700 mb-2">主要用途</label>
-                             <div className="grid grid-cols-2 gap-3">{usagePresets.map(preset => (<button key={preset.label} onClick={() => setAiUsage(preset.value)} className={`p-3 text-left rounded-xl border transition-all ${aiUsage === preset.value ? 'border-black bg-black text-white' : 'border-gray-200 hover:border-gray-400'}`}><div className="font-bold text-sm mb-1">{preset.label}</div><div className={`text-xs ${aiUsage === preset.value ? 'text-gray-300' : 'text-gray-500'} line-clamp-1`}>{preset.value}</div></button>))}</div>
-                             <textarea value={aiUsage} onChange={(e) => setAiUsage(e.target.value)} className="w-full mt-3 p-4 bg-gray-50 border-transparent focus:bg-white focus:border-black focus:ring-0 rounded-xl text-sm transition-all resize-none" rows={3} placeholder="或手動輸入詳細需求..." />
-                         </div>
-                         <button onClick={handleAiAutoBuild} disabled={isAiLoading || !aiBudget || !aiUsage} className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">{isAiLoading ? (<><Loader2 className="h-5 w-5 animate-spin" /> AI 思考中...</>) : (<><Sparkles className="h-5 w-5" /> 生成配置單</>)}</button>
-                    </div>
-                ) : (
-                    <div className="space-y-6 animate-fade-in">
-                         <div className="bg-green-50 p-6 rounded-2xl border border-green-100"><div className="flex items-start gap-3"><Check className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" /><div><h3 className="font-bold text-green-800 text-lg mb-2">配單完成！</h3><p className="text-green-700 text-sm leading-relaxed whitespace-pre-line">{aiExplanation}</p></div></div></div>
-                         <div className="flex gap-4"><button onClick={() => { setIsAiModalOpen(false); setAiExplanation(''); }} className="flex-1 py-3 border border-gray-200 text-gray-600 rounded-xl font-bold hover:bg-gray-50">關閉</button><button onClick={() => { setAiExplanation(''); }} className="flex-1 py-3 bg-black text-white rounded-xl font-bold hover:bg-gray-800">再試一次</button></div>
-                    </div>
-                )}
-            </div>
-        </div>
-      )}
-      
-      {isModalOpen && activeCategory && (
-         <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center sm:p-4">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
             <div className="relative bg-white w-full md:max-w-7xl h-[92vh] md:h-[90vh] rounded-t-3xl md:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-slide-up md:animate-fade-in">
                 <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white z-10 flex-shrink-0">
                     <div><h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">{replacingItemId ? <RefreshCw className="h-5 w-5 text-blue-600" /> : <Plus className="h-5 w-5" />}{replacingItemId ? '更換' : '選擇'} {categoryDisplayMap[activeCategory]}</h2></div>
