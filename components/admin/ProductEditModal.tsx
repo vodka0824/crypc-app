@@ -1,3 +1,4 @@
+
 // components/admin/ProductEditModal.tsx
 import React from 'react';
 import { Save, X, LayoutGrid, AlignLeft, Tag, ImageIcon, Loader2 } from 'lucide-react';
@@ -57,7 +58,7 @@ const ProductEditModal: React.FC<ProductEditModalProps> = ({
 
   const currentCategorySpecs = categoryFilters[currentProduct.category as Category] || [];
   const isOthersCategory = currentProduct.category === Category.OTHERS;
-  const shouldShowImageInput = !isOthersCategory && (currentProduct.category === Category.CASE);
+  const isCaseCategory = currentProduct.category === Category.CASE;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center sm:p-4">
@@ -117,20 +118,22 @@ const ProductEditModal: React.FC<ProductEditModalProps> = ({
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
+                  <div className={isCaseCategory ? "" : "col-span-2"}>
                     <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">價格 (NT$)</label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">$</span>
                       <input type="number" value={currentProduct.price || ''} onChange={e => setCurrentProduct(p => ({ ...p, price: Number(e.target.value) }))} className="w-full pl-6 pr-3 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:border-black focus:ring-1 focus:ring-black font-bold disabled:bg-gray-100" required disabled={isLoading} />
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">圖片 URL {shouldShowImageInput && '(機殼推薦)'}</label>
-                    <div className="relative">
-                      <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-                      <input type="text" value={currentProduct.image || ''} onChange={e => setCurrentProduct(p => ({ ...p, image: e.target.value }))} className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:border-black focus:ring-1 focus:ring-black truncate disabled:bg-gray-100" placeholder="https://..." disabled={isLoading} />
+                  {isCaseCategory && (
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">圖片 URL (機殼推薦)</label>
+                      <div className="relative">
+                        <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                        <input type="text" value={currentProduct.image || ''} onChange={e => setCurrentProduct(p => ({ ...p, image: e.target.value }))} className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:border-black focus:ring-1 focus:ring-black truncate disabled:bg-gray-100" placeholder="https://..." disabled={isLoading} />
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
                 
                 <div>
