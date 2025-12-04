@@ -5,6 +5,7 @@ import { Plus, Check, RotateCcw, X, ChevronDown, ChevronRight, Cpu, Minus, Trash
 import { categoryFilters, categoryDisplayMap } from '../data/mockData';
 import { useProducts } from '../contexts/ProductContext';
 import { generateSmartBuild } from '../services/geminiService';
+import ConfirmationModal from '../components/common/ConfirmationModal';
 
 const buildSlots = [
   { category: Category.CPU, icon: Cpu, label: 'CPU 處理器' },
@@ -171,6 +172,19 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiExplanation, setAiExplanation] = useState<string>('');
   const [qtySelectorId, setQtySelectorId] = useState<string | null>(null);
+
+  // New state for confirmation modal
+  const [confirmModalState, setConfirmModalState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: React.ReactNode;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
 
   useEffect(() => {
     const savedTemplates = localStorage.getItem('crypc_templates');
@@ -352,9 +366,15 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
 
   const handleClearCategory = (e: React.MouseEvent, category: Category) => {
     e.stopPropagation();
-    if (window.confirm(`確定要清空 ${categoryDisplayMap[category]} 嗎？`)) {
+    setConfirmModalState({
+      isOpen: true,
+      title: '清空分類',
+      message: `確定要移除所有 ${categoryDisplayMap[category]} 嗎？此操作無法復原。`,
+      onConfirm: () => {
         setCartItems(prev => prev.filter(item => item.category !== category));
-    }
+        setConfirmModalState(prev => ({ ...prev, isOpen: false }));
+      }
+    });
   };
 
   const handleQuantityChange = (productId: string, delta: number) => {
@@ -392,9 +412,15 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
   };
 
   const resetBuild = () => {
-    if(window.confirm('確定要清空目前的估價清單嗎？\n\n警告：此操作將移除所有已選項目且無法復原。')) {
+    setConfirmModalState({
+      isOpen: true,
+      title: '清空估價單',
+      message: '確定要清空目前的估價清單嗎？\n\n警告：此操作將移除所有已選項目且無法復原。',
+      onConfirm: () => {
         setCartItems([]);
-    }
+        setConfirmModalState(prev => ({ ...prev, isOpen: false }));
+      }
+    });
   };
 
   const handleShareBuild = () => {
@@ -460,7 +486,10 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
   };
 
   const handleLoadTemplate = (template: BuildTemplate) => {
-      if (cartItems.length > 0) { if (!window.confirm('載入範本將會覆蓋目前的估價單，確定要繼續嗎？')) return; }
+      // Use window.confirm for now as template loading has complex return logic, or simple wrapper
+      if (cartItems.length > 0) { 
+          if (!window.confirm('載入範本將會覆蓋目前的估價單，確定要繼續嗎？')) return; 
+      }
       const newCartItems: CartItem[] = [];
       let missingCount = 0;
       template.items.forEach(tItem => {
@@ -608,11 +637,13 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                     )}
 
                     {hasItems && (
-                        <div className="p-1 md:p-3 space-y-2">
+                        /* Adjusted Layout: Removed padding from container to allow items to align flush with header padding */
+                        <div className="flex flex-col">
                             {items.map((item) => {
                                 const errorMsg = checkCompatibility(item);
                                 return (
-                                    <div key={item.uniqueId} className="flex flex-col md:flex-row md:items-center p-3 rounded-xl bg-white border border-transparent hover:border-gray-200 hover:shadow-md transition-all relative group/item">
+                                    /* Adjusted Row: Padding matches header (px-3 md:px-5) to align left */
+                                    <div key={item.uniqueId} className="flex flex-col md:flex-row md:items-center px-3 py-4 md:px-5 border-b border-gray-50 last:border-0 hover:bg-gray-50/80 transition-all relative group/item">
                                         <div className="hidden md:flex w-16 h-16 bg-white rounded-lg border border-gray-100 items-center justify-center overflow-hidden mr-4 flex-shrink-0 p-1 relative">
                                             {/* Fix image handling: Fallback icon behind, Image on top with error hiding */}
                                             <div className="absolute inset-0 flex items-center justify-center text-gray-200">
@@ -728,6 +759,17 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
            </div>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={confirmModalState.isOpen}
+        onClose={() => setConfirmModalState(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmModalState.onConfirm}
+        title={confirmModalState.title}
+        confirmText="確認"
+      >
+        {confirmModalState.message}
+      </ConfirmationModal>
 
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-[0_-4px_16px_rgba(0,0,0,0.1)] p-3 safe-area-bottom">
          <div className="flex items-center gap-2">
