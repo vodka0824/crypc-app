@@ -53,6 +53,7 @@ export const categoryFilters: Record<string, FilterConfig[]> = {
     { key: 'type', label: '散熱類型' },
     { key: 'size', label: '尺寸' },
     { key: 'brand', label: '品牌' },
+    { key: 'features', label: '特色' }, // Added
   ],
   [Category.AIR_COOLER]: [ // New Category Filters
     { key: 'brand', label: '品牌' },
@@ -165,7 +166,7 @@ export const initialProducts: Product[] = [
   // Cooler (Liquid)
   { 
     id: 'cooler-1', name: 'NZXT Kraken Elite 360', price: 9990, category: Category.COOLER, description: '360mm/2.36吋LCD/FDB風扇/6年保', image: '', 
-    specDetails: { type: '水冷', brand: 'NZXT', size: '360mm', coolerHeight: '52mm' } 
+    specDetails: { type: '水冷', brand: 'NZXT', size: '360mm', coolerHeight: '52mm', features: 'LCD螢幕' } 
   },
   // Air Cooler (New Mock Item)
   {
