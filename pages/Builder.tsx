@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { Category, Product, BuildState, BuilderItem, ProductSpecs, BuildTemplate, CartItem } from '../types';
-import { Plus, Check, RotateCcw, X, ChevronDown, ChevronRight, Cpu, Minus, Trash2, AlertTriangle, SlidersHorizontal, ListFilter, Eraser, Monitor, Disc, Save, FolderOpen, Search, RefreshCw, Sparkles, Loader2, Bot, Share2, Copy, StickyNote, Box, Fan, Wind, Zap } from 'lucide-react';
+import { Plus, Check, RotateCcw, X, ChevronDown, ChevronRight, Cpu, Minus, Trash2, AlertTriangle, SlidersHorizontal, ListFilter, Eraser, Monitor, Disc, Save, FolderOpen, Search, RefreshCw, Sparkles, Loader2, Bot, Share2, Copy, StickyNote, Box, Fan, Wind, Zap, ShoppingCart, CreditCard, Banknote } from 'lucide-react';
 import { categoryFilters, categoryDisplayMap } from '../data/mockData';
 import { useProducts } from '../contexts/ProductContext';
 import { generateSmartBuild } from '../services/geminiService';
@@ -28,6 +28,113 @@ const usagePresets = [
     { label: '影音創作', value: '影片剪輯、3D 建模渲染、圖形設計' },
     { label: '程式開發', value: '軟體開發、虛擬機運行、多工處理' }
 ];
+
+// --- Installment Logic Helper ---
+const InstallmentCalculator = ({ totalPrice }: { totalPrice: number }) => {
+    const [mode, setMode] = useState<'credit' | 'cardless'>('credit');
+
+    if (totalPrice === 0) return null;
+
+    // Excel Formula Logic Implementation
+    const calculateCreditCard = (price: number, periods: number, rateHigh: number, rateLow: number) => {
+        // Condition: IF(E1*2.49%>498, ...)
+        const thresholdCheck = (price * 0.0249) > 498;
+        
+        let total = 0;
+        if (thresholdCheck) {
+            // E1 * rateHigh + 498
+            total = price * rateHigh + 498;
+        } else {
+            // E1 * rateLow
+            total = price * rateLow;
+        }
+        
+        // Round to integer for display
+        total = Math.round(total);
+        const monthly = Math.round(total / periods);
+        
+        return { total, monthly };
+    };
+
+    const calculateCardless = (price: number, periods: number, factor: number) => {
+        // Formula: ROUNDUP(ROUNDUP(E1/Factor, 0)/Periods, 0) -> Monthly
+        // Note: JS Math.ceil is equivalent to Excel ROUNDUP(x, 0)
+        const step1 = Math.ceil(price / factor);
+        const monthly = Math.ceil(step1 / periods);
+        const total = monthly * periods;
+        
+        return { total, monthly };
+    };
+
+    const creditRows = [
+        { periods: 3, ...calculateCreditCard(totalPrice, 3, 1.03, 1.0549) },
+        { periods: 6, ...calculateCreditCard(totalPrice, 6, 1.035, 1.0599) },
+        { periods: 12, ...calculateCreditCard(totalPrice, 12, 1.06, 1.0849) },
+        { periods: 24, ...calculateCreditCard(totalPrice, 24, 1.06, 1.0849) }, // Formula in image matches 12 periods
+    ];
+
+    const cardlessRows = [
+        { periods: 6, ...calculateCardless(totalPrice, 6, 0.9551) },
+        { periods: 9, ...calculateCardless(totalPrice, 9, 0.9391) },
+        { periods: 12, ...calculateCardless(totalPrice, 12, 0.92218) },
+        { periods: 15, ...calculateCardless(totalPrice, 15, 0.905) },
+        { periods: 18, ...calculateCardless(totalPrice, 18, 0.885) },
+        { periods: 21, ...calculateCardless(totalPrice, 21, 0.8735) },
+        { periods: 24, ...calculateCardless(totalPrice, 24, 0.8624) },
+        { periods: 30, ...calculateCardless(totalPrice, 30, 0.83333) },
+    ];
+
+    const activeRows = mode === 'credit' ? creditRows : cardlessRows;
+
+    return (
+        <div className="mt-4 border-t border-gray-200 pt-4">
+            <div className="flex bg-gray-100 p-1 rounded-xl mb-3">
+                <button 
+                    onClick={() => setMode('credit')}
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all ${mode === 'credit' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-black'}`}
+                >
+                    <CreditCard className="h-3.5 w-3.5" /> 刷卡分期
+                </button>
+                <button 
+                    onClick={() => setMode('cardless')}
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all ${mode === 'cardless' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-black'}`}
+                >
+                    <Banknote className="h-3.5 w-3.5" /> 無卡分期
+                </button>
+            </div>
+
+            <div className="overflow-hidden rounded-xl border border-gray-200">
+                <table className="w-full text-sm">
+                    <thead className="bg-gray-50 text-gray-500 font-medium text-xs uppercase">
+                        <tr>
+                            <th className="py-2 pl-4 text-left">期數</th>
+                            <th className="py-2 text-right">每期金額</th>
+                            <th className="py-2 pr-4 text-right text-gray-400">總價</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                        {activeRows.map((row) => (
+                            <tr key={row.periods} className="group hover:bg-gray-50 transition-colors">
+                                <td className="py-2.5 pl-4 font-bold text-gray-700">
+                                    {row.periods} 期
+                                </td>
+                                <td className="py-2.5 text-right font-bold text-black font-mono text-base">
+                                    ${row.monthly.toLocaleString()}
+                                </td>
+                                <td className="py-2.5 pr-4 text-right text-gray-400 text-xs font-mono">
+                                    ${row.total.toLocaleString()}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+            <p className="text-[10px] text-gray-400 mt-2 text-center">
+                * 試算金額僅供參考，實際分期利率與總額以{mode === 'credit' ? '銀行' : '審核'}結果為準。
+            </p>
+        </div>
+    );
+};
 
 interface BuilderProps {
   cartItems: CartItem[];
@@ -241,6 +348,27 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
     }
     
     return null;
+  };
+
+  // --- Quick Picks Logic (Rank by Popularity) ---
+  const getQuickPicks = (category: Category) => {
+    // 1. Get products in category
+    let candidates = allProducts.filter(p => p.category === category);
+
+    // 2. Filter Compatible Items Only (Basic Logic)
+    candidates = candidates.filter(p => checkCompatibility(p) === null);
+
+    // 3. Sort/Rank by Popularity Descending (Fallback to Price if equal/missing)
+    candidates.sort((a, b) => {
+        const popA = a.popularity || 0;
+        const popB = b.popularity || 0;
+        if (popA !== popB) {
+            return popB - popA; // Higher popularity first
+        }
+        return b.price - a.price; // Then higher price (flagship)
+    });
+    
+    return candidates.slice(0, 3);
   };
 
 
@@ -638,6 +766,7 @@ ${cartItems.map(item => `${item.category}: ${item.name} x${item.quantity} - $${(
             const items = build[slot.category] || [];
             const hasItems = items.length > 0;
             const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const quickPicks = !hasItems ? getQuickPicks(slot.category) : [];
 
             return (
                 <div key={slot.category} className={`
@@ -667,15 +796,68 @@ ${cartItems.map(item => `${item.category}: ${item.name} x${item.quantity} - $${(
                             </div>
                         </div>
                     ) : (
-                        <div onClick={() => handleOpenSelection(slot.category)} className="flex items-center justify-between p-3 md:p-5 cursor-pointer hover:bg-gray-50 transition-colors">
-                            <div className="flex items-center gap-4 opacity-60 group-hover:opacity-100 transition-opacity">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between p-3 md:p-5 transition-colors gap-4">
+                            {/* Empty State Left: Icon & Label */}
+                            <div 
+                                onClick={() => handleOpenSelection(slot.category)}
+                                className="flex items-center gap-4 opacity-60 group-hover:opacity-100 transition-opacity cursor-pointer flex-1"
+                            >
                                 <div className="p-2 rounded-md bg-gray-100 text-gray-400 group-hover:text-gray-600 transition-colors">
                                     <slot.icon className="h-5 w-5 md:h-6 md:w-6" />
                                 </div>
-                                <span className="font-bold text-sm md:text-lg text-gray-500 group-hover:text-black transition-colors">{slot.label}</span>
+                                <div className="flex flex-col">
+                                    <span className="font-bold text-sm md:text-lg text-gray-500 group-hover:text-black transition-colors">{slot.label}</span>
+                                    <span className="text-xs text-gray-400 hidden md:block">點擊選擇商品</span>
+                                </div>
                             </div>
-                            <div className="text-xs md:text-sm text-gray-300 group-hover:text-black flex items-center gap-1 font-medium">
-                                <span>選擇零件</span> <ChevronRight className="h-4 w-4" />
+
+                            {/* Desktop Quick Picks */}
+                            <div className="hidden md:flex gap-3 overflow-x-auto pb-1 max-w-[60%] justify-end">
+                                {quickPicks.map(pick => (
+                                    <div 
+                                        key={pick.id} 
+                                        className="flex-shrink-0 w-48 bg-white border border-gray-100 rounded-lg p-2 hover:border-black hover:shadow-md transition-all cursor-pointer group/pick relative"
+                                        onClick={() => handleSelectProduct(pick, 1)}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            {/* Thumbnail */}
+                                            <div className="w-10 h-10 bg-gray-50 rounded flex items-center justify-center overflow-hidden flex-shrink-0 border border-gray-100">
+                                                {pick.image ? (
+                                                    <img src={pick.image} alt="" className="w-full h-full object-contain p-0.5 mix-blend-multiply" />
+                                                ) : (
+                                                    <Box className="h-4 w-4 text-gray-300" />
+                                                )}
+                                            </div>
+                                            
+                                            <div className="flex-1 min-w-0">
+                                                <div className="text-xs font-bold text-gray-800 line-clamp-1 group-hover/pick:text-black">{pick.name}</div>
+                                                <div className="text-[10px] text-gray-500 flex justify-between items-center mt-0.5">
+                                                    <span className="font-mono text-black font-bold">${pick.price.toLocaleString()}</span>
+                                                    <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 group-hover/pick:bg-black group-hover/pick:text-white transition-colors">
+                                                        <Plus className="h-3 w-3" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                                {quickPicks.length > 0 && (
+                                    <button 
+                                        onClick={() => handleOpenSelection(slot.category)}
+                                        className="flex-shrink-0 w-8 flex items-center justify-center bg-gray-50 rounded-lg border border-transparent hover:bg-gray-100 text-gray-400"
+                                        title="查看更多"
+                                    >
+                                        <ChevronRight className="h-4 w-4" />
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Mobile Simple Action */}
+                            <div 
+                                onClick={() => handleOpenSelection(slot.category)}
+                                className="md:hidden text-xs text-gray-300 flex items-center gap-1 font-medium justify-end"
+                            >
+                                <span>選擇</span> <ChevronRight className="h-4 w-4" />
                             </div>
                         </div>
                     )}
@@ -686,6 +868,18 @@ ${cartItems.map(item => `${item.category}: ${item.name} x${item.quantity} - $${(
                                 const errorMsg = checkCompatibility(item);
                                 return (
                                     <div key={item.uniqueId} className="flex flex-col md:flex-row md:items-center p-3 rounded-xl bg-white border border-transparent hover:border-gray-200 hover:shadow-md transition-all relative group/item">
+                                        
+                                        {/* Desktop Product Image */}
+                                        <div className="hidden md:flex w-16 h-16 bg-white rounded-lg border border-gray-100 items-center justify-center overflow-hidden mr-4 flex-shrink-0 p-1">
+                                            {item.image ? (
+                                                <img src={item.image} alt={item.name} className="w-full h-full object-contain mix-blend-multiply" />
+                                            ) : (
+                                                <div className="text-gray-200">
+                                                    <slot.icon className="h-6 w-6 opacity-50" />
+                                                </div>
+                                            )}
+                                        </div>
+
                                         <div className="flex-1 min-w-0 pr-8 md:pr-0">
                                             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                                                 <span className="font-bold text-sm md:text-lg text-gray-900 leading-tight">{item.name}</span>
@@ -749,7 +943,7 @@ ${cartItems.map(item => `${item.category}: ${item.name} x${item.quantity} - $${(
 
         {/* Right Column: Sticky Sidebar (Summary) - PC Only (lg:col-span-4) */}
         <div className="hidden lg:block lg:col-span-4 order-1 lg:order-2 h-full">
-           <div className="sticky top-24 self-start bg-white rounded-2xl shadow-lg shadow-gray-200/50 border border-gray-200 p-6 max-h-[calc(100vh-120px)] flex flex-col">
+           <div className="sticky top-24 self-start bg-white rounded-2xl shadow-lg shadow-gray-200/50 border border-gray-200 p-6 max-h-[calc(100vh-120px)] flex flex-col overflow-y-auto custom-scrollbar">
                 <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-100 flex-shrink-0">
                     <h2 className="text-xl font-bold flex items-center gap-2 text-gray-900">
                         <StickyNote className="h-5 w-5" /> 估價單摘要
@@ -787,20 +981,33 @@ ${cartItems.map(item => `${item.category}: ${item.name} x${item.quantity} - $${(
                     )}
                 </div>
 
+                {/* Installment Calculator */}
+                <InstallmentCalculator totalPrice={totalPrice} />
+
                 {/* Quick Item List */}
-                <div className="space-y-3 mb-6 flex-1 overflow-y-auto pr-2 custom-scrollbar min-h-0">
+                <div className="space-y-3 mb-6 flex-1 pr-2 mt-6">
                     {cartItems.length === 0 ? (
                         <div className="text-center py-12 text-gray-400 text-sm bg-gray-50 rounded-xl border border-dashed border-gray-200">
                              尚未選擇任何零件
                         </div>
                     ) : (
                         cartItems.map(item => (
-                            <div key={item.id} className="flex justify-between items-start text-sm border-b border-gray-50 pb-2 last:border-0 last:pb-0">
-                                <div className="flex-1 pr-4">
-                                    <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded mr-2 inline-block mb-1">{categoryDisplayMap[item.category]?.split(' ')[0] || '其它'}</span>
-                                    <span className="text-gray-800 font-bold line-clamp-1 block">{item.name}</span>
+                            <div key={item.id} className="flex justify-between items-start text-sm border-b border-gray-50 pb-2 last:border-0 last:pb-0 group">
+                                <div className="flex-1 pr-4 flex gap-2">
+                                    {/* Mini Image in Summary */}
+                                    <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center flex-shrink-0 border border-gray-200 overflow-hidden">
+                                        {item.image ? (
+                                            <img src={item.image} className="w-full h-full object-contain" alt="" />
+                                        ) : (
+                                            <Box className="h-4 w-4 text-gray-300" />
+                                        )}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded inline-block mb-1 mr-1">{categoryDisplayMap[item.category]?.split(' ')[0] || '其它'}</span>
+                                        <span className="text-gray-800 font-bold line-clamp-1 block">{item.name}</span>
+                                    </div>
                                 </div>
-                                <div className="font-mono font-bold text-gray-900 text-xs mt-1">
+                                <div className="font-mono font-bold text-gray-900 text-xs mt-1 whitespace-nowrap">
                                     ${(item.price * item.quantity).toLocaleString()}
                                 </div>
                             </div>
