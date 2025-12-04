@@ -29,7 +29,8 @@ export const categoryFilters: Record<string, FilterConfig[]> = {
     { key: 'tdp', label: 'TDP 功耗' },
   ],
   [Category.RAM]: [
-    { key: 'type', label: '記憶體規格' },
+    { key: 'clock', label: '記憶體時脈' }, // Changed from '記憶體規格'
+    { key: 'type', label: '記憶體規格' },  // Added for DDR4/DDR5
     { key: 'capacity', label: '總容量' },
   ],
   [Category.SSD]: [
@@ -137,14 +138,14 @@ export const initialProducts: Product[] = [
     id: 'gpu-2', name: 'Gigabyte RTX 4060 Eagle OC', price: 10990, category: Category.GPU, description: '8G GDDR6/24.2cm/三風扇/雙槽', image: '', 
     specDetails: { brand: 'NVIDIA', series: 'RTX 40 Series', vram: '8GB', tdp: '115W', gpuLength: '242mm' } 
   },
-  // RAM
+  // RAM (Updated with clock)
   { 
     id: 'ram-1', name: 'G.SKILL Trident Z5 RGB', price: 4500, category: Category.RAM, description: '32GB(16Gx2) DDR5-6000/CL30/黑銀', image: '', 
-    specDetails: { type: 'DDR5', capacity: '32GB' } 
+    specDetails: { type: 'DDR5', capacity: '32GB', clock: '6000' } 
   },
   { 
     id: 'ram-2', name: 'Kingston Fury Beast', price: 1600, category: Category.RAM, description: '16GB(8Gx2) DDR4-3200/CL16/黑', image: '', 
-    specDetails: { type: 'DDR4', capacity: '16GB' } 
+    specDetails: { type: 'DDR4', capacity: '16GB', clock: '3200' } 
   },
   // SSD
   { 
