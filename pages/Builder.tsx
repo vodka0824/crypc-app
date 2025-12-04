@@ -6,6 +6,7 @@ import { categoryFilters, categoryDisplayMap } from '../data/mockData';
 import { useProducts } from '../contexts/ProductContext';
 import { generateSmartBuild } from '../services/geminiService';
 import ConfirmationModal from '../components/common/ConfirmationModal';
+import toast from 'react-hot-toast';
 
 const buildSlots = [
   { category: Category.CPU, icon: Cpu, label: 'CPU 處理器' },
@@ -426,15 +427,15 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
   const handleShareBuild = () => {
       const text = `【哭PC 配置單】\n總價：$${totalPrice.toLocaleString()}\n----------\n${cartItems.map(item => `${item.category}: ${item.name} x${item.quantity} - $${(item.price * item.quantity).toLocaleString()}`).join('\n')}\n----------\n此報價單由 CryPC 系統產生`;
       navigator.clipboard.writeText(text).then(() => {
-          alert('配置單已複製到剪貼簿！');
+          toast.success('配置單已複製到剪貼簿！');
       }).catch(() => {
-          alert('複製失敗，請手動截圖。');
+          toast.error('複製失敗，請手動截圖。');
       });
   };
 
   const handleAiAutoBuild = async () => {
       if (!aiBudget || !aiUsage) {
-          alert('請輸入預算與用途');
+          toast.error('請輸入預算與用途');
           return;
       }
       setIsAiLoading(true);
@@ -442,7 +443,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
       try {
           const numericBudget = parseInt(aiBudget.replace(/[^0-9]/g, ''));
           if (isNaN(numericBudget)) {
-             alert('預算格式錯誤，請輸入數字');
+             toast.error('預算格式錯誤，請輸入數字');
              setIsAiLoading(false);
              return;
           }
@@ -458,10 +459,10 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
               setCartItems(newItems);
               setAiExplanation(result.explanation);
           } else {
-              alert('AI 無法找到適合的配置，請嘗試調整預算。');
+              toast.error('AI 無法找到適合的配置，請嘗試調整預算。');
           }
       } catch (error: any) {
-          alert(error.message || 'AI 配單發生錯誤');
+          toast.error(error.message || 'AI 配單發生錯誤');
       } finally {
           setIsAiLoading(false);
       }
@@ -474,40 +475,58 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
   };
 
   const handleSaveTemplate = () => {
-      if (!newTemplateName.trim()) { alert('請輸入範本名稱'); return; }
-      if (cartItems.length === 0) { alert('估價單為空，無法儲存。'); return; }
+      if (!newTemplateName.trim()) { toast.error('請輸入範本名稱'); return; }
+      if (cartItems.length === 0) { toast.error('估價單為空，無法儲存。'); return; }
       const templateItems = cartItems.map(item => ({ productId: item.id, quantity: item.quantity }));
       const newTemplate: BuildTemplate = { id: Date.now().toString(), name: newTemplateName.trim(), timestamp: Date.now(), items: templateItems };
       const updatedTemplates = [newTemplate, ...templates];
       setTemplates(updatedTemplates);
       localStorage.setItem('crypc_templates', JSON.stringify(updatedTemplates));
       setIsTemplateModalOpen(false);
-      alert('範本儲存成功！');
+      toast.success('範本儲存成功！');
   };
 
   const handleLoadTemplate = (template: BuildTemplate) => {
-      // Use window.confirm for now as template loading has complex return logic, or simple wrapper
+      const executeLoad = () => {
+          const newCartItems: CartItem[] = [];
+          let missingCount = 0;
+          template.items.forEach(tItem => {
+              const currentProduct = allProducts.find(p => p.id === tItem.productId);
+              if (currentProduct) { newCartItems.push({ ...currentProduct, quantity: tItem.quantity }); } 
+              else { missingCount++; }
+          });
+          setCartItems(newCartItems);
+          setIsTemplateModalOpen(false);
+          setConfirmModalState(prev => ({ ...prev, isOpen: false })); // Close modal if open
+          if (missingCount > 0) { toast(`範本載入成功，但有 ${missingCount} 個商品已下架或無法辨識。`, { icon: '⚠️' }); }
+          else { toast.success('範本載入成功'); }
+      };
+
       if (cartItems.length > 0) { 
-          if (!window.confirm('載入範本將會覆蓋目前的估價單，確定要繼續嗎？')) return; 
+          setConfirmModalState({
+              isOpen: true,
+              title: '載入範本',
+              message: '載入範本將會覆蓋目前的估價單，確定要繼續嗎？',
+              onConfirm: executeLoad
+          });
+      } else {
+          executeLoad();
       }
-      const newCartItems: CartItem[] = [];
-      let missingCount = 0;
-      template.items.forEach(tItem => {
-          const currentProduct = allProducts.find(p => p.id === tItem.productId);
-          if (currentProduct) { newCartItems.push({ ...currentProduct, quantity: tItem.quantity }); } 
-          else { missingCount++; }
-      });
-      setCartItems(newCartItems);
-      setIsTemplateModalOpen(false);
-      if (missingCount > 0) { alert(`範本載入成功，但有 ${missingCount} 個商品已下架或無法辨識，已自動略過。`); }
   };
 
   const handleDeleteTemplate = (id: string) => {
-      if (window.confirm('確定要刪除此範本嗎？')) {
-          const updated = templates.filter(t => t.id !== id);
-          setTemplates(updated);
-          localStorage.setItem('crypc_templates', JSON.stringify(updated));
-      }
+      setConfirmModalState({
+          isOpen: true,
+          title: '刪除範本',
+          message: '確定要刪除此範本嗎？',
+          onConfirm: () => {
+              const updated = templates.filter(t => t.id !== id);
+              setTemplates(updated);
+              localStorage.setItem('crypc_templates', JSON.stringify(updated));
+              setConfirmModalState(prev => ({ ...prev, isOpen: false }));
+              toast.success('範本已刪除');
+          }
+      });
   };
 
   const getSmartOptions = (category: Category, filterKey: keyof ProductSpecs) => {
