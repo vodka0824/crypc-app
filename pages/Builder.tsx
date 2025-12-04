@@ -360,8 +360,9 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
 
     // 3. Sort/Rank by Popularity Descending (Fallback to Price if equal/missing)
     candidates.sort((a, b) => {
-        const popA = a.popularity || 0;
-        const popB = b.popularity || 0;
+        // Use type assertion to avoid TS error if types.ts update is delayed/cached
+        const popA = (a as any).popularity || 0;
+        const popB = (b as any).popularity || 0;
         if (popA !== popB) {
             return popB - popA; // Higher popularity first
         }
