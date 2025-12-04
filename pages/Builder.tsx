@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { Category, Product, BuildState, BuilderItem, ProductSpecs, BuildTemplate, CartItem } from '../types';
-import { Plus, Check, RotateCcw, X, ChevronDown, ChevronRight, Cpu, Minus, Trash2, AlertTriangle, SlidersHorizontal, ListFilter, Eraser, Monitor, Disc, Save, FolderOpen, Search, RefreshCw, Sparkles, Loader2, Bot, Share2, Copy, StickyNote, Box, Fan, Wind, Zap, ShoppingCart, CreditCard, Banknote } from 'lucide-react';
+import { Plus, Check, RotateCcw, X, ChevronDown, ChevronRight, Cpu, Minus, Trash2, AlertTriangle, SlidersHorizontal, ListFilter, Eraser, Monitor, Disc, Save, FolderOpen, Search, RefreshCw, Sparkles, Loader2, Bot, Share2, Copy, StickyNote, Box, Fan, Wind, Zap, ShoppingCart, CreditCard, Banknote, CircuitBoard, HardDrive, Gamepad2, Droplets, Mouse, MemoryStick, Clock } from 'lucide-react';
 import { categoryFilters, categoryDisplayMap } from '../data/mockData';
 import { useProducts } from '../contexts/ProductContext';
 import { generateSmartBuild } from '../services/geminiService';
@@ -9,17 +9,17 @@ import { generateSmartBuild } from '../services/geminiService';
 // Slot definition for UI iteration
 const buildSlots = [
   { category: Category.CPU, icon: Cpu, label: 'CPU 處理器' },
-  { category: Category.MB, icon: Check, label: '主機板' },
-  { category: Category.RAM, icon: Check, label: '記憶體' },
-  { category: Category.GPU, icon: Check, label: '顯示卡' },
-  { category: Category.SSD, icon: Check, label: '固態硬碟' },
-  { category: Category.COOLER, icon: Check, label: '散熱器(水冷)' },
+  { category: Category.MB, icon: CircuitBoard, label: '主機板' },
+  { category: Category.RAM, icon: MemoryStick, label: '記憶體' },
+  { category: Category.GPU, icon: Gamepad2, label: '顯示卡' },
+  { category: Category.SSD, icon: HardDrive, label: '固態硬碟' },
+  { category: Category.COOLER, icon: Droplets, label: '散熱器(水冷)' },
   { category: Category.AIR_COOLER, icon: Wind, label: '散熱器(風冷)' },
-  { category: Category.PSU, icon: Check, label: '電源供應器' },
-  { category: Category.CASE, icon: Check, label: '機殼' },
+  { category: Category.PSU, icon: Zap, label: '電源供應器' },
+  { category: Category.CASE, icon: Box, label: '機殼' },
   { category: Category.MONITOR, icon: Monitor, label: '螢幕' },
   { category: Category.SOFTWARE, icon: Disc, label: '軟體' },
-  { category: Category.OTHERS, icon: Box, label: '其它商品' },
+  { category: Category.OTHERS, icon: Mouse, label: '其它商品' },
 ];
 
 const usagePresets = [
@@ -1176,263 +1176,253 @@ ${cartItems.map(item => `${item.category}: ${item.name} x${item.quantity} - $${(
                                                         {filter.label}
                                                     </h4>
                                                     {activeCount > 0 && (
-                                                        <span className="bg-black text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
-                                                            {activeCount}
-                                                        </span>
+                                                        <span className="bg-black text-white text-[10px] px-1.5 py-0.5 rounded-full ml-auto">{activeCount}</span>
                                                     )}
+                                                    {isExpanded ? <ChevronDown className="h-4 w-4 text-gray-400" /> : <ChevronRight className="h-4 w-4 text-gray-400" />}
                                                 </div>
-                                                {isExpanded ? 
-                                                    <ChevronDown className="h-4 w-4 text-gray-400 group-hover:text-gray-600"/> : 
-                                                    <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-gray-600"/>
-                                                }
                                             </button>
-                                            
+
+                                            {/* Expanded Options */}
                                             {isExpanded && (
-                                                <div className="mt-1 space-y-1 pl-1 pb-2 animate-fade-in">
-                                                    {options.map(opt => (
-                                                        <label key={opt} className="flex items-center gap-3 py-1.5 cursor-pointer group/item hover:bg-white hover:shadow-sm rounded-lg px-2 -mx-2 transition-all">
-                                                            <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all flex-shrink-0 ${
-                                                                activeFilters[filter.key]?.includes(opt) 
-                                                                ? 'bg-black border-black' 
-                                                                : 'bg-white border-gray-300 group-hover/item:border-gray-500'
-                                                            }`}>
-                                                                {activeFilters[filter.key]?.includes(opt) && <Check className="h-3 w-3 text-white" />}
-                                                            </div>
-                                                            <input 
-                                                                type="checkbox" 
-                                                                checked={activeFilters[filter.key]?.includes(opt) || false}
-                                                                onChange={() => toggleFilter(filter.key as string, opt)}
-                                                                className="hidden"
-                                                            />
-                                                            <span className={`text-sm leading-tight ${activeFilters[filter.key]?.includes(opt) ? 'font-bold text-black' : 'font-medium text-gray-600 group-hover/item:text-gray-900'}`}>{opt}</span>
-                                                        </label>
-                                                    ))}
+                                                <div className="pl-1 mt-1 space-y-1 mb-3">
+                                                    {options.map(option => {
+                                                        const isChecked = activeFilters[filter.key]?.includes(option);
+                                                        return (
+                                                            <button
+                                                                key={option}
+                                                                onClick={() => toggleFilter(filter.key as string, option)}
+                                                                className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition-all flex items-center gap-2 group/opt ${isChecked ? 'bg-black text-white font-bold' : 'text-gray-600 hover:bg-gray-200'}`}
+                                                            >
+                                                                <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${isChecked ? 'border-white bg-black' : 'border-gray-300 bg-white group-hover/opt:border-gray-400'}`}>
+                                                                    {isChecked && <Check className="h-3 w-3 text-white" />}
+                                                                </div>
+                                                                <span className="truncate">{option}</span>
+                                                            </button>
+                                                        );
+                                                    })}
                                                 </div>
                                             )}
                                         </div>
-                                    )
+                                    );
                                 })}
-                                {(!categoryFilters[activeCategory] || categoryFilters[activeCategory].length === 0) && (
-                                    <div className="text-center py-10 text-gray-400 text-sm">
-                                        此分類暫無篩選條件
-                                    </div>
-                                )}
                             </div>
                         </div>
                     </div>
 
-                    {/* Main Content */}
-                    <div className="flex-1 flex flex-col bg-white min-w-0">
-                        {/* Toolbar - Added overflow handling */}
-                        <div className="p-4 border-b border-gray-100 flex gap-3 overflow-x-auto custom-scrollbar bg-white z-10 flex-shrink-0">
-                             {/* Category Quick Switch */}
-                             {buildSlots.map(slot => (
-                                 <button
-                                    key={slot.category}
-                                    onClick={() => handleSwitchCategory(slot.category)}
-                                    className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors flex items-center gap-2 flex-shrink-0 ${activeCategory === slot.category ? 'bg-black text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-                                 >
-                                    <slot.icon className="h-3 w-3" />
-                                    {slot.label}
-                                 </button>
-                             ))}
-                        </div>
-                        
-                        {/* Search & Sort */}
-                        <div className="p-4 border-b border-gray-100 flex gap-3 bg-white z-10 flex-shrink-0">
-                            <div className="relative flex-1">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                <input 
-                                    type="text" 
-                                    placeholder="搜尋商品名稱..." 
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full pl-9 pr-10 py-3 bg-gray-50 border-transparent focus:bg-white focus:border-gray-300 focus:ring-0 rounded-xl text-sm transition-all"
-                                />
-                                {/* Clear Button */}
-                                {searchQuery && (
-                                  <button 
-                                    onClick={() => setSearchQuery('')}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-200 transition-colors"
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </button>
-                                )}
+                    {/* Main Content: Product Grid */}
+                    <div className="flex-1 flex flex-col min-w-0 bg-white relative">
+                         {/* Mobile Filter Toggle */}
+                         <div className="lg:hidden p-4 border-b border-gray-100 flex-shrink-0">
+                             <button 
+                                 onClick={() => setMobileFiltersOpen(true)}
+                                 className="w-full flex items-center justify-center gap-2 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-bold text-sm"
+                             >
+                                 <SlidersHorizontal className="h-4 w-4" /> 
+                                 篩選條件 {Object.keys(activeFilters).length > 0 && `(${Object.keys(activeFilters).length})`}
+                             </button>
+                         </div>
+
+                         <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
+                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-12">
+                                 {filteredModalProducts.length === 0 ? (
+                                     <div className="col-span-full py-20 text-center text-gray-400">
+                                         <Search className="h-16 w-16 mx-auto mb-4 opacity-20" />
+                                         <p className="text-lg font-medium">沒有符合條件的商品</p>
+                                         <button onClick={() => { setActiveFilters({}); setSearchQuery(''); }} className="mt-2 text-blue-600 font-bold hover:underline">
+                                             清除所有篩選
+                                         </button>
+                                     </div>
+                                 ) : (
+                                     filteredModalProducts.map(product => {
+                                         const currentQty = rowQuantities[product.id] || 1;
+                                         return (
+                                             <div key={product.id} className="group border border-gray-100 rounded-2xl p-4 hover:shadow-lg hover:border-gray-200 transition-all flex flex-col bg-white">
+                                                 <div className="flex gap-4 mb-3">
+                                                     <div className="w-16 h-16 bg-gray-50 rounded-xl flex-shrink-0 flex items-center justify-center p-1 border border-gray-100">
+                                                         {product.image ? (
+                                                             <img src={product.image} className="w-full h-full object-contain mix-blend-multiply" alt="" />
+                                                         ) : (
+                                                             <Box className="h-8 w-8 text-gray-300" />
+                                                         )}
+                                                     </div>
+                                                     <div className="min-w-0 flex-1">
+                                                         <div className="flex justify-between items-start">
+                                                             <h4 className="font-bold text-gray-900 leading-tight line-clamp-2 text-sm mb-1" title={product.name}>
+                                                                 {product.name}
+                                                             </h4>
+                                                         </div>
+                                                         <div className="text-xs text-gray-500 line-clamp-1 mb-2">{product.description}</div>
+                                                         
+                                                         <div className="flex flex-wrap gap-1">
+                                                             {product.specDetails && Object.entries(product.specDetails)
+                                                                 .filter(([k]) => k !== 'brand')
+                                                                 .slice(0, 3).map(([k, v]) => (
+                                                                 <span key={k} className="text-[10px] bg-gray-50 text-gray-500 px-1.5 py-0.5 rounded border border-gray-100">
+                                                                     {v}
+                                                                 </span>
+                                                             ))}
+                                                         </div>
+                                                     </div>
+                                                 </div>
+                                                 
+                                                 <div className="mt-auto pt-3 border-t border-gray-50 flex items-center justify-between gap-3">
+                                                     <div className="font-bold text-lg text-black tabular-nums">
+                                                         ${product.price.toLocaleString()}
+                                                     </div>
+                                                     <div className="flex items-center gap-2">
+                                                         {/* Qty Control */}
+                                                         <div className="flex items-center bg-gray-50 rounded-lg h-9 border border-gray-200">
+                                                             <button 
+                                                                 onClick={(e) => { e.stopPropagation(); setRowQuantities(prev => ({ ...prev, [product.id]: Math.max(1, (prev[product.id] || 1) - 1) })); }}
+                                                                 className="w-8 h-full flex items-center justify-center hover:bg-gray-200 rounded-l-lg text-gray-600"
+                                                             >
+                                                                 <Minus className="h-3 w-3" />
+                                                             </button>
+                                                             <span className="w-8 text-center text-sm font-bold text-black">{currentQty}</span>
+                                                             <button 
+                                                                 onClick={(e) => { e.stopPropagation(); setRowQuantities(prev => ({ ...prev, [product.id]: (prev[product.id] || 1) + 1 })); }}
+                                                                 className="w-8 h-full flex items-center justify-center hover:bg-gray-200 rounded-r-lg text-gray-600"
+                                                             >
+                                                                 <Plus className="h-3 w-3" />
+                                                             </button>
+                                                         </div>
+
+                                                         {/* Add Button */}
+                                                         <button 
+                                                             onClick={() => handleSelectProduct(product, currentQty)}
+                                                             className={`h-9 px-4 rounded-lg font-bold text-sm shadow-sm transition-transform active:scale-95 flex items-center gap-1.5 ${
+                                                                 replacingItemId ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-black text-white hover:bg-gray-800'
+                                                             }`}
+                                                         >
+                                                             {replacingItemId ? <RefreshCw className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+                                                             {replacingItemId ? '更換' : '加入'}
+                                                         </button>
+                                                     </div>
+                                                 </div>
+                                             </div>
+                                         );
+                                     })
+                                 )}
+                             </div>
+                         </div>
+                    </div>
+
+                    {/* Mobile Filters Sidebar Overlay */}
+                    {mobileFiltersOpen && (
+                        <div className="absolute inset-0 z-30 bg-white flex flex-col lg:hidden animate-fade-in">
+                            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-white shadow-sm flex-shrink-0">
+                                <h3 className="font-bold text-lg">篩選條件</h3>
+                                <button onClick={() => setMobileFiltersOpen(false)} className="p-2 bg-gray-100 rounded-full text-gray-600"><X className="h-5 w-5" /></button>
                             </div>
-                            <select 
-                                value={modalSort} 
-                                onChange={(e) => setModalSort(e.target.value)}
-                                className="px-4 py-3 bg-gray-50 border-transparent rounded-xl text-sm font-bold focus:ring-0 cursor-pointer hover:bg-gray-100 transition-colors"
-                            >
-                                <option value="default">預設排序</option>
-                                <option value="price-asc">價格低 → 高</option>
-                                <option value="price-desc">價格高 → 低</option>
-                            </select>
-                            <button 
-                                onClick={() => setMobileFiltersOpen(true)}
-                                className="lg:hidden px-3 py-2 bg-gray-100 rounded-xl"
-                            >
-                                <SlidersHorizontal className="h-5 w-5" />
-                            </button>
-                        </div>
-
-                        {/* Product List - Optimized Grid */}
-                        <div className="flex-1 overflow-y-auto p-4 bg-gray-50/50 custom-scrollbar">
-                            {filteredModalProducts.length === 0 ? (
-                                <div className="text-center py-24 text-gray-400">
-                                    <Search className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                                    <p className="text-lg font-medium">沒有找到符合條件的商品</p>
-                                    <button onClick={() => { setActiveFilters({}); setSearchQuery(''); }} className="mt-4 text-blue-600 hover:underline">清除篩選條件</button>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                                    {filteredModalProducts.map(product => {
-                                        const showImage = product.category === Category.CASE;
-                                        const existingCartItem = cartItems.find(item => item.id === product.id);
-                                        const quantityInCart = existingCartItem ? existingCartItem.quantity : 0;
-                                        const isSelected = quantityInCart > 0;
-
+                            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                                <div className="space-y-6">
+                                    {categoryFilters[activeCategory]?.map(filter => {
+                                        const options = getSmartOptions(activeCategory, filter.key);
+                                        if (options.length === 0) return null;
                                         return (
-                                        <div 
-                                            key={product.id} 
-                                            onClick={() => handleMobileAdd(product)} 
-                                            className={`group flex flex-row items-stretch gap-4 p-4 rounded-xl bg-white border hover:shadow-lg transition-all cursor-pointer relative overflow-hidden ${isSelected ? 'border-black ring-1 ring-black bg-gray-50' : 'border-gray-200 hover:border-black'}`}
-                                        >
-                                            {/* Left: Image (Only for Case) */}
-                                            {showImage && (
-                                                <div className="w-20 h-20 md:w-24 md:h-24 flex-shrink-0 bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden border border-gray-100">
-                                                    {product.image ? (
-                                                        <img src={product.image} className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-500" alt="" />
-                                                    ) : (
-                                                        <Box className="h-8 w-8 text-gray-300" />
-                                                    )}
-                                                </div>
-                                            )}
-
-                                            {/* Middle: Info */}
-                                            <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                                                <div>
-                                                    <div className="flex items-start justify-between gap-2">
-                                                        <h4 className="font-bold text-gray-900 text-base leading-snug line-clamp-2 group-hover:text-black transition-colors">{product.name}</h4>
-                                                    </div>
-                                                    
-                                                    {/* Specs Tags */}
-                                                    <div className="flex flex-wrap gap-1.5 mt-2">
-                                                        {product.specDetails?.brand && <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded font-medium">{product.specDetails.brand}</span>}
-                                                        {product.specDetails?.socket && <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-100 rounded font-bold">{product.specDetails.socket}</span>}
-                                                        {product.specDetails?.chipset && <span className="text-[10px] px-1.5 py-0.5 bg-purple-50 text-purple-700 border border-purple-100 rounded font-bold">{product.specDetails.chipset}</span>}
-                                                        {product.specDetails?.wattage && <span className="text-[10px] px-1.5 py-0.5 bg-orange-50 text-orange-700 border border-orange-100 rounded font-bold">{product.specDetails.wattage}</span>}
-                                                    </div>
-                                                </div>
-                                                
-                                                <div className="text-xs text-gray-400 mt-2 line-clamp-1 group-hover:text-gray-500 transition-colors">{product.description}</div>
-                                            </div>
-
-                                            {/* Right: Price & Action */}
-                                            <div className="flex flex-col justify-between items-end pl-2">
-                                                <div className="text-right">
-                                                    <div className="font-bold text-xl text-black tabular-nums tracking-tight">
-                                                        ${product.price.toLocaleString()}
-                                                    </div>
-                                                    {isSelected && (
-                                                        <div className="text-xs font-bold text-blue-600 mt-1 flex items-center justify-end gap-1">
-                                                            <Check className="h-3 w-3" /> 已加入
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                
-                                                <div 
-                                                    className="mt-2" 
-                                                    onClick={(e) => e.stopPropagation()} 
-                                                >
-                                                    {replacingItemId ? (
-                                                        <button 
-                                                            onClick={() => handleSelectProduct(product, 1)}
-                                                            className="px-5 py-2 rounded-lg text-sm font-bold shadow-sm transition-all flex items-center gap-1.5 bg-blue-600 text-white hover:bg-blue-700 hover:shadow-blue-200"
-                                                        >
-                                                            <RefreshCw className="h-3.5 w-3.5" /> 更換
-                                                        </button>
-                                                    ) : isSelected ? (
-                                                        <div className="flex items-center bg-white border border-gray-200 rounded-lg h-9 shadow-sm">
-                                                            <button 
-                                                                onClick={() => handleMobileDecrement(product.id)} 
-                                                                className="w-9 h-full flex items-center justify-center hover:bg-gray-100 rounded-l-lg text-gray-600 transition-colors"
+                                            <div key={filter.key}>
+                                                <h4 className="font-bold text-gray-900 mb-2 text-sm">{filter.label}</h4>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {options.map(option => {
+                                                        const isChecked = activeFilters[filter.key]?.includes(option);
+                                                        return (
+                                                            <button
+                                                                key={option}
+                                                                onClick={() => toggleFilter(filter.key as string, option)}
+                                                                className={`px-3 py-1.5 rounded-lg text-sm border transition-all ${
+                                                                    isChecked ? 'bg-black text-white border-black font-bold' : 'bg-white text-gray-600 border-gray-200'
+                                                                }`}
                                                             >
-                                                                <Minus className="h-3.5 w-3.5" />
+                                                                {option}
                                                             </button>
-                                                            <div className="w-8 text-center text-sm font-bold border-x border-gray-100 flex items-center justify-center h-3/5 text-black">
-                                                                {quantityInCart}
-                                                            </div>
-                                                            <button 
-                                                                onClick={() => handleSelectProduct(product, 1)}
-                                                                className="w-9 h-full flex items-center justify-center hover:bg-gray-100 rounded-r-lg text-gray-600 transition-colors"
-                                                            >
-                                                                <Plus className="h-3.5 w-3.5" />
-                                                            </button>
-                                                        </div>
-                                                    ) : (
-                                                        <button 
-                                                            onClick={() => handleSelectProduct(product, 1)}
-                                                            className="px-5 py-2 rounded-lg text-sm font-bold shadow-sm transition-all flex items-center gap-1.5 bg-black text-white hover:bg-gray-800 hover:scale-105 hover:shadow-md"
-                                                        >
-                                                            <Plus className="h-3.5 w-3.5" /> 選擇
-                                                        </button>
-                                                    )}
+                                                        )
+                                                    })}
                                                 </div>
                                             </div>
-                                        </div>
-                                    )})}
+                                        );
+                                    })}
                                 </div>
-                            )}
+                            </div>
+                            <div className="p-4 border-t border-gray-100 bg-white flex-shrink-0">
+                                 <button onClick={() => setMobileFiltersOpen(false)} className="w-full py-3 bg-black text-white rounded-xl font-bold">
+                                     查看 {filteredModalProducts.length} 個結果
+                                 </button>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             </div>
          </div>
       )}
-      
+
       {/* Template Modal */}
       {isTemplateModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
               <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsTemplateModalOpen(false)} />
-              <div className="relative bg-white w-full max-w-md rounded-2xl shadow-xl p-6 animate-fade-in">
-                  <h3 className="text-xl font-bold mb-4">{templateMode === 'save' ? '儲存配置範本' : '載入配置範本'}</h3>
+              <div className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 animate-fade-in">
+                  <div className="flex justify-between items-center mb-6">
+                      <div className="flex items-center gap-3">
+                          <div className="p-2.5 bg-gray-100 rounded-xl">
+                              {templateMode === 'save' ? <Save className="h-6 w-6 text-black" /> : <FolderOpen className="h-6 w-6 text-black" />}
+                          </div>
+                          <div>
+                              <h3 className="text-xl font-bold text-gray-900">{templateMode === 'save' ? '儲存配置' : '載入配置'}</h3>
+                              <p className="text-xs text-gray-500">
+                                  {templateMode === 'save' ? '將目前的清單儲存為範本' : '從儲存的範本中還原'}
+                              </p>
+                          </div>
+                      </div>
+                      <button onClick={() => setIsTemplateModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-black"><X className="h-5 w-5" /></button>
+                  </div>
                   
                   {templateMode === 'save' ? (
                       <div className="space-y-4">
-                          <input 
-                              type="text" 
-                              value={newTemplateName}
-                              onChange={(e) => setNewTemplateName(e.target.value)}
-                              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-black focus:ring-1 focus:ring-black outline-none"
-                              placeholder="輸入範本名稱 (例如: 30K 遊戲機)"
-                              autoFocus
-                          />
-                          <div className="flex gap-3">
-                              <button onClick={() => setIsTemplateModalOpen(false)} className="flex-1 py-3 border border-gray-200 rounded-xl font-bold hover:bg-gray-50">取消</button>
-                              <button onClick={handleSaveTemplate} className="flex-1 py-3 bg-black text-white rounded-xl font-bold hover:bg-gray-800">儲存</button>
+                          <div>
+                              <label className="block text-sm font-bold text-gray-700 mb-2">範本名稱</label>
+                              <input 
+                                 type="text" 
+                                 value={newTemplateName}
+                                 onChange={(e) => setNewTemplateName(e.target.value)}
+                                 placeholder="例如: 遊戲機 40K (2024)"
+                                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-black focus:border-transparent font-bold transition-all"
+                                 autoFocus
+                              />
                           </div>
+                          <button onClick={handleSaveTemplate} className="w-full py-3.5 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-colors shadow-lg active:scale-95">
+                              確認儲存
+                          </button>
                       </div>
                   ) : (
-                      <div className="space-y-4">
+                      <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1 custom-scrollbar">
                           {templates.length === 0 ? (
-                              <div className="text-center py-8 text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                                  沒有已儲存的範本
+                              <div className="text-center text-gray-400 py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                                  <FolderOpen className="h-10 w-10 mx-auto mb-2 opacity-20" />
+                                  <p className="text-sm">暫無儲存的範本</p>
                               </div>
                           ) : (
-                              <div className="max-h-60 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-                                  {templates.map(t => (
-                                      <div key={t.id} className="flex justify-between items-center p-3 rounded-xl border border-gray-100 hover:border-black hover:bg-gray-50 transition-all group">
-                                          <div onClick={() => handleLoadTemplate(t)} className="flex-1 cursor-pointer">
-                                              <div className="font-bold text-gray-900">{t.name}</div>
-                                              <div className="text-xs text-gray-500">{new Date(t.timestamp).toLocaleDateString()} · {t.items.length} 個項目</div>
+                              templates.map(template => (
+                                  <div key={template.id} className="group border border-gray-200 rounded-xl p-4 hover:border-black transition-all bg-white hover:shadow-md cursor-pointer" onClick={() => handleLoadTemplate(template)}>
+                                      <div className="flex justify-between items-start mb-2">
+                                          <div>
+                                              <div className="font-bold text-gray-900 text-lg group-hover:text-blue-600 transition-colors">{template.name}</div>
+                                              <div className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                                                  <Clock className="h-3 w-3" /> {new Date(template.timestamp).toLocaleString()}
+                                              </div>
                                           </div>
-                                          <button onClick={() => handleDeleteTemplate(t.id)} className="p-2 text-gray-300 hover:text-red-500 rounded-lg hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
+                                          <button 
+                                              onClick={(e) => { e.stopPropagation(); handleDeleteTemplate(template.id); }} 
+                                              className="text-gray-400 hover:text-red-500 p-2 rounded-lg hover:bg-red-50 transition-colors"
+                                          >
+                                              <Trash2 className="h-4 w-4" />
+                                          </button>
                                       </div>
-                                  ))}
-                              </div>
+                                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50">
+                                          <span className="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{template.items.length} 個零件</span>
+                                          <span className="text-xs font-bold text-blue-600">點擊載入</span>
+                                      </div>
+                                  </div>
+                              ))
                           )}
-                           <button onClick={() => setIsTemplateModalOpen(false)} className="w-full py-3 border border-gray-200 rounded-xl font-bold hover:bg-gray-50 mt-2">關閉</button>
                       </div>
                   )}
               </div>
