@@ -23,6 +23,7 @@ export interface ProductSpecs {
   type?: string;        // 類型 (DDR4, DDR5, ATX, MATX...)
   memoryType?: string;  // 記憶體支援 (DDR4, DDR5) - 用於主機板
   capacity?: string;    // 容量 (32GB, 1TB...)
+  clock?: string;       // 記憶體時脈 (3200, 6000...) - 用於 RAM
   wattage?: string;     // 瓦數 (850W, 1000W...) - 用於 PSU 供電量
   efficiency?: string;  // 轉換效率 (80+ 金牌, 銅牌...) - 用於 PSU
   tdp?: string;         // TDP 功耗 (125W, 285W...) - 用於 CPU/GPU
@@ -35,6 +36,7 @@ export interface ProductSpecs {
   radiatorSupport?: string; // 水冷排支援 (機殼)
   coolerHeight?: string;    // 散熱器高度/限高 (機殼, 散熱器)
   gpuLength?: string;       // 顯卡長度/限長 (機殼, 顯示卡)
+  features?: string;        // 特色 (水冷散熱器等)
 
   [key: string]: string | undefined; // Index signature allows dynamic access via string keys
 }
