@@ -1,13 +1,14 @@
+
 import React, { useState } from 'react';
-import { X, Trash2, Loader2, FileText, Printer, Eye } from 'lucide-react';
-import { CartItem } from '../types';
+import { X, Trash2, Loader2, FileText, Printer, Eye, Box, Cpu, CircuitBoard, HardDrive, Monitor, Disc, Wind, Gamepad2, Droplets, Zap, Mouse, MemoryStick } from 'lucide-react';
+import { CartItem, Category } from '../types';
 
 interface CartSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   cartItems: CartItem[];
   removeFromCart: (id: string) => void;
-  onOpenPreview: () => void; // New Prop
+  onOpenPreview: () => void;
 }
 
 const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose, cartItems, removeFromCart, onOpenPreview }) => {
@@ -17,17 +18,33 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose, cartItems, r
   
   const handleReview = () => {
     setIsProcessing(true);
-    // Simulate short loading
     setTimeout(() => {
         setIsProcessing(false);
-        onClose(); // Close sidebar
-        onOpenPreview(); // Open Preview
+        onClose();
+        onOpenPreview();
     }, 500);
+  };
+
+  const getCategoryIcon = (category: Category) => {
+    switch (category) {
+      case Category.CPU: return Cpu;
+      case Category.MB: return CircuitBoard;
+      case Category.GPU: return Gamepad2;
+      case Category.RAM: return MemoryStick;
+      case Category.SSD: return HardDrive;
+      case Category.CASE: return Box;
+      case Category.PSU: return Zap;
+      case Category.COOLER: return Droplets;
+      case Category.AIR_COOLER: return Wind;
+      case Category.MONITOR: return Monitor;
+      case Category.SOFTWARE: return Disc;
+      case Category.OTHERS: return Mouse;
+      default: return Box;
+    }
   };
 
   return (
     <div className={`fixed inset-0 z-[10000] overflow-hidden ${isOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}>
-      {/* Backdrop */}
       <div 
         className={`absolute inset-0 bg-black bg-opacity-40 transition-opacity duration-300 ${
           isOpen ? 'opacity-100' : 'opacity-0'
@@ -35,7 +52,6 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose, cartItems, r
         onClick={onClose}
       />
       
-      {/* Sidebar panel */}
       <div className={`absolute inset-y-0 right-0 max-w-md w-full flex transition-transform duration-300 transform ${
         isOpen ? 'translate-x-0' : 'translate-x-full'
       }`}>
@@ -59,32 +75,51 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose, cartItems, r
                 </button>
               </div>
             ) : (
-              cartItems.map((item) => (
-                <div key={item.id} className="flex gap-4 items-center">
-                  {/* Removed Image Section */}
-                  
-                  <div className="flex flex-1 flex-col">
-                    <div>
-                      <div className="flex justify-between text-base font-medium text-gray-900">
-                        <h3 className="line-clamp-2">{item.name}</h3>
-                        <p className="ml-4 flex-shrink-0 font-mono">{item.price.toLocaleString()}</p>
-                      </div>
-                      <p className="mt-1 text-xs text-gray-500">{item.category}</p>
+              cartItems.map((item) => {
+                const ItemIcon = getCategoryIcon(item.category);
+                
+                return (
+                  <div key={item.id} className="flex gap-4 items-center group">
+                    <div className="w-16 h-16 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0 border border-gray-100 overflow-hidden relative">
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <ItemIcon className="h-6 w-6 text-gray-300" />
+                        </div>
+                        {item.image && (
+                            <img 
+                                src={item.image} 
+                                className="w-full h-full object-contain z-10 relative mix-blend-multiply p-1" 
+                                alt="" 
+                                loading="lazy"
+                                onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                }}
+                            />
+                        )}
                     </div>
-                    <div className="flex flex-1 items-end justify-between text-sm mt-2">
-                      <p className="text-gray-500">數量 {item.quantity}</p>
+                    
+                    <div className="flex flex-1 flex-col min-w-0">
+                      <div>
+                        <div className="flex justify-between text-base font-medium text-gray-900">
+                          <h3 className="line-clamp-2 leading-tight text-sm font-bold">{item.name}</h3>
+                          <p className="ml-4 flex-shrink-0 font-mono text-sm">${item.price.toLocaleString()}</p>
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">{item.category}</p>
+                      </div>
+                      <div className="flex flex-1 items-end justify-between text-sm mt-2">
+                        <p className="text-gray-500 font-bold bg-gray-100 px-2 py-0.5 rounded text-xs">x {item.quantity}</p>
 
-                      <button
-                        type="button"
-                        onClick={() => removeFromCart(item.id)}
-                        className="font-medium text-red-500 hover:text-red-700 flex items-center gap-1"
-                      >
-                        <Trash2 className="h-4 w-4" /> 移除
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => removeFromCart(item.id)}
+                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 
@@ -92,13 +127,13 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose, cartItems, r
             <div className="border-t border-gray-100 p-6 space-y-4 bg-gray-50">
               <div className="flex justify-between text-base font-medium text-gray-900">
                 <p>總計金額</p>
-                <p className="font-mono text-xl">{total.toLocaleString()}</p>
+                <p className="font-mono text-2xl font-bold">${total.toLocaleString()}</p>
               </div>
               
               <button
                 onClick={handleReview}
                 disabled={isProcessing}
-                className="w-full flex items-center justify-center gap-2 rounded-xl border border-transparent bg-black px-6 py-4 text-base font-bold text-white shadow-sm hover:bg-gray-800 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 rounded-xl border border-transparent bg-black px-6 py-4 text-base font-bold text-white shadow-lg hover:bg-gray-800 transition-colors disabled:opacity-70 disabled:cursor-not-allowed active:scale-95"
               >
                 {isProcessing ? (
                   <>
