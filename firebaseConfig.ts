@@ -1,21 +1,37 @@
+
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
-// ------------------------------------------------------------------
-// Vercel 部署版本
-// 程式會自動讀取您在 Vercel 後台設定的 Environment Variables
-// ------------------------------------------------------------------
-
-// Type assertion for import.meta to avoid TS errors
-const env = (import.meta as any).env;
+// Helper to safely access environment variables in various environments
+const getEnv = (key: string) => {
+  // 1. Try Vite's import.meta.env
+  // @ts-ignore
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    // @ts-ignore
+    return import.meta.env[key];
+  }
+  
+  // 2. Try process.env (Fallback for Node.js/container environments)
+  try {
+    // @ts-ignore
+    if (typeof process !== 'undefined' && process.env) {
+      // @ts-ignore
+      return process.env[key];
+    }
+  } catch (e) {
+    // ignore access errors
+  }
+  
+  return undefined;
+};
 
 const firebaseConfig = {
-  apiKey: env.VITE_FIREBASE_API_KEY,
-  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: env.VITE_FIREBASE_APP_ID
+  apiKey: getEnv('VITE_FIREBASE_API_KEY'),
+  authDomain: getEnv('VITE_FIREBASE_AUTH_DOMAIN'),
+  projectId: getEnv('VITE_FIREBASE_PROJECT_ID'),
+  storageBucket: getEnv('VITE_FIREBASE_STORAGE_BUCKET'),
+  messagingSenderId: getEnv('VITE_FIREBASE_MESSAGING_SENDER_ID'),
+  appId: getEnv('VITE_FIREBASE_APP_ID')
 };
 
 // Initialize Firebase
