@@ -58,9 +58,22 @@ const Admin: React.FC = () => {
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
       const matchesCategory = filterCategory === 'All' || p.category === filterCategory;
-      const matchesSearch = searchQuery === '' || 
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        p.id.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      let matchesSearch = true;
+      if (searchQuery.trim()) {
+        const searchTerms = searchQuery.toLowerCase().trim().split(/\s+/);
+        // Combine all searchable text fields including specs
+        const productText = [
+          p.name,
+          p.id,
+          p.category,
+          ...Object.values(p.specDetails || {})
+        ].join(' ').toLowerCase();
+        
+        // Multi-keyword logic: every term must be present in the product info
+        matchesSearch = searchTerms.every(term => productText.includes(term));
+      }
+
       return matchesCategory && matchesSearch;
     });
   }, [products, filterCategory, searchQuery]);
