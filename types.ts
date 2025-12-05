@@ -72,3 +72,13 @@ export interface BuildTemplate {
   timestamp: number;
   items: { productId: string; quantity: number }[]; // Only store ID to fetch latest price on load
 }
+
+// Quotation Configuration Types
+export interface QuotationSettings {
+  companyName: string;
+  companyAddress: string;
+  companyPhone: string;
+  companyEmail: string;
+  terms: string[];
+  footerText: string;
+}
