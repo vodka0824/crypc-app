@@ -16,10 +16,12 @@ const FilterControls: React.FC<FilterControlsProps> = ({
   productCount,
 }) => {
   return (
-    <div className="flex flex-wrap gap-2 py-4 bg-[#F5F5F7]">
+    // Mobile: Horizontal Scroll (flex-nowrap, overflow-x-auto)
+    // Desktop: Wrap (md:flex-wrap)
+    <div className="flex flex-nowrap md:flex-wrap gap-2 py-4 bg-[#F5F5F7] overflow-x-auto hide-scrollbar px-1 -mx-1 md:px-0 md:mx-0">
       <button 
         onClick={() => setFilterCategory('All')}
-        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all border ${filterCategory === 'All' ? 'bg-black text-white border-black shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+        className={`flex-shrink-0 px-4 py-2 rounded-lg text-sm font-bold transition-all border whitespace-nowrap ${filterCategory === 'All' ? 'bg-black text-white border-black shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
       >
         全部 ({productCount})
       </button>
@@ -27,7 +29,7 @@ const FilterControls: React.FC<FilterControlsProps> = ({
         <button
           key={cat}
           onClick={() => setFilterCategory(cat)}
-          className={`px-4 py-2 rounded-lg text-sm font-bold transition-all border ${filterCategory === cat ? 'bg-black text-white border-black shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+          className={`flex-shrink-0 px-4 py-2 rounded-lg text-sm font-bold transition-all border whitespace-nowrap ${filterCategory === cat ? 'bg-black text-white border-black shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
         >
           {categoryDisplayMap[cat]}
         </button>
