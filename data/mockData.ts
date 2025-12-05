@@ -9,6 +9,7 @@ export type FilterConfig = {
 
 export const categoryFilters: Record<string, FilterConfig[]> = {
   [Category.CPU]: [
+    { key: 'platform', label: '平台 (Intel/AMD)' }, // Added as requested
     { key: 'brand', label: '處理器品牌' },
     { key: 'socket', label: 'CPU 腳位' },
     { key: 'chipset', label: '主機板晶片組' },
@@ -22,20 +23,18 @@ export const categoryFilters: Record<string, FilterConfig[]> = {
     { key: 'type', label: '尺寸規格' },
   ],
   [Category.GPU]: [
-    { key: 'brand', label: '品牌' }, // Standardized label
+    { key: 'brand', label: '晶片廠商' },
     { key: 'series', label: '顯卡系列' },
     { key: 'vram', label: '記憶體容量' },
     { key: 'gpuLength', label: '顯卡長度' }, 
     { key: 'tdp', label: 'TDP 功耗' },
   ],
   [Category.RAM]: [
-    { key: 'brand', label: '品牌' }, // Added
     { key: 'clock', label: '記憶體時脈' }, 
     { key: 'type', label: '記憶體規格' }, 
     { key: 'capacity', label: '總容量' },
   ],
   [Category.SSD]: [
-    { key: 'brand', label: '品牌' }, // Added
     { key: 'capacity', label: '容量' },
     { key: 'type', label: '介面' },
   ],
@@ -47,14 +46,14 @@ export const categoryFilters: Record<string, FilterConfig[]> = {
     { key: 'gpuLength', label: '顯卡長度' }, 
   ],
   [Category.PSU]: [
-    { key: 'brand', label: '品牌' },
     { key: 'wattage', label: '瓦數' },
     { key: 'efficiency', label: '轉換效率' },
+    { key: 'brand', label: '品牌' },
   ],
   [Category.COOLER]: [
-    { key: 'brand', label: '品牌' },
     { key: 'type', label: '散熱類型' },
     { key: 'size', label: '尺寸' },
+    { key: 'brand', label: '品牌' },
     { key: 'features', label: '特色' }, 
   ],
   [Category.AIR_COOLER]: [ 
@@ -73,9 +72,7 @@ export const categoryFilters: Record<string, FilterConfig[]> = {
     { key: 'brand', label: '發行商' },
     { key: 'licenseType', label: '授權類型' },
   ],
-  [Category.OTHERS]: [
-    { key: 'brand', label: '品牌' }, // Added
-  ], 
+  [Category.OTHERS]: [], 
 };
 
 export const categoryDisplayMap: Record<string, string> = {
@@ -98,24 +95,24 @@ export const initialProducts: Product[] = [
   // CPU - Intel
   { 
     id: 'cpu-1', name: 'Intel i9-14900K', price: 19800, category: Category.CPU, description: '24核/32緒 3.2G(↑6.0G)/36M/UHD770/125W', image: '', 
-    specDetails: { brand: 'Intel', socket: 'LGA1700', chipset: 'Z790', tdp: '125W' } 
+    specDetails: { platform: 'Intel', brand: 'Intel', socket: 'LGA1700', chipset: 'Z790', tdp: '125W' } 
   },
   { 
     id: 'cpu-2', name: 'Intel i7-14700K', price: 14500, category: Category.CPU, description: '20核/28緒 3.4G(↑5.6G)/33M/UHD770/125W', image: '', 
-    specDetails: { brand: 'Intel', socket: 'LGA1700', chipset: 'Z790', tdp: '125W' } 
+    specDetails: { platform: 'Intel', brand: 'Intel', socket: 'LGA1700', chipset: 'Z790', tdp: '125W' } 
   },
   { 
     id: 'cpu-3', name: 'Intel i5-12400F', price: 4200, category: Category.CPU, description: '6核/12緒 2.5G(↑4.4G)/18M/無內顯/65W', image: '', 
-    specDetails: { brand: 'Intel', socket: 'LGA1700', chipset: 'B760', tdp: '65W' } 
+    specDetails: { platform: 'Intel', brand: 'Intel', socket: 'LGA1700', chipset: 'B760', tdp: '65W' } 
   },
   // CPU - AMD
   { 
     id: 'cpu-4', name: 'AMD Ryzen 9 7950X', price: 18500, category: Category.CPU, description: '16核/32緒 4.5G(↑5.7G)/64M/RDNA2/170W', image: '', 
-    specDetails: { brand: 'AMD', socket: 'AM5', chipset: 'X670', tdp: '170W' } 
+    specDetails: { platform: 'AMD', brand: 'AMD', socket: 'AM5', chipset: 'X670', tdp: '170W' } 
   },
   { 
     id: 'cpu-5', name: 'AMD Ryzen 7 7800X3D', price: 13800, category: Category.CPU, description: '8核/16緒 4.2G(↑5.0G)/96M/RDNA2/120W', image: '', 
-    specDetails: { brand: 'AMD', socket: 'AM5', chipset: 'B650', tdp: '120W' } 
+    specDetails: { platform: 'AMD', brand: 'AMD', socket: 'AM5', chipset: 'B650', tdp: '120W' } 
   },
   // Motherboards (MB)
   {
