@@ -1,12 +1,14 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { Category, Product, BuildState, BuilderItem, ProductSpecs, BuildTemplate, CartItem } from '../types';
-import { Plus, Check, RotateCcw, X, ChevronDown, ChevronRight, Cpu, Minus, Trash2, AlertTriangle, SlidersHorizontal, ListFilter, Eraser, Monitor, Disc, Save, FolderOpen, Search, RefreshCw, Sparkles, Loader2, Bot, Share2, Copy, StickyNote, Box, Fan, Wind, Zap, ShoppingCart, CreditCard, Banknote, CircuitBoard, HardDrive, Gamepad2, Droplets, Mouse, MemoryStick, Clock } from 'lucide-react';
+import { Plus, Check, RotateCcw, X, ChevronDown, ChevronRight, Cpu, Minus, Trash2, AlertTriangle, SlidersHorizontal, ListFilter, Eraser, Monitor, Disc, Save, FolderOpen, Search, RefreshCw, Sparkles, Loader2, Bot, Share2, Copy, StickyNote, Box, Fan, Wind, Zap, ShoppingCart, CircuitBoard, HardDrive, Gamepad2, Droplets, Mouse, MemoryStick, Clock } from 'lucide-react';
 import { categoryFilters, categoryDisplayMap } from '../data/mockData';
 import { useProducts } from '../contexts/ProductContext';
 import { generateSmartBuild } from '../services/geminiService';
 import ConfirmationModal from '../components/common/ConfirmationModal';
 import toast from 'react-hot-toast';
+import InstallmentCalculator from '../components/builder/InstallmentCalculator';
+import { parseWattage, checkCompatibility } from '../utils/builderLogic';
 
 const buildSlots = [
   { category: Category.CPU, icon: Cpu, label: 'CPU 處理器' },
@@ -29,101 +31,6 @@ const usagePresets = [
     { label: '影音創作', value: '影片剪輯、3D 建模渲染、圖形設計' },
     { label: '程式開發', value: '軟體開發、虛擬機運行、多工處理' }
 ];
-
-const InstallmentCalculator = ({ totalPrice }: { totalPrice: number }) => {
-    const [mode, setMode] = useState<'credit' | 'cardless'>('credit');
-
-    if (totalPrice === 0) return null;
-
-    const calculateCreditCard = (price: number, periods: number, rateHigh: number, rateLow: number) => {
-        const thresholdCheck = (price * 0.0249) > 498;
-        let total = 0;
-        if (thresholdCheck) {
-            total = price * rateHigh + 498;
-        } else {
-            total = price * rateLow;
-        }
-        total = Math.round(total);
-        const monthly = Math.round(total / periods);
-        return { total, monthly };
-    };
-
-    const calculateCardless = (price: number, periods: number, factor: number) => {
-        const step1 = Math.ceil(price / factor);
-        const monthly = Math.ceil(step1 / periods);
-        const total = monthly * periods;
-        return { total, monthly };
-    };
-
-    const creditRows = [
-        { periods: 3, ...calculateCreditCard(totalPrice, 3, 1.03, 1.0549) },
-        { periods: 6, ...calculateCreditCard(totalPrice, 6, 1.035, 1.0599) },
-        { periods: 12, ...calculateCreditCard(totalPrice, 12, 1.06, 1.0849) },
-        { periods: 24, ...calculateCreditCard(totalPrice, 24, 1.06, 1.0849) },
-    ];
-
-    const cardlessRows = [
-        { periods: 6, ...calculateCardless(totalPrice, 6, 0.9551) },
-        { periods: 9, ...calculateCardless(totalPrice, 9, 0.9391) },
-        { periods: 12, ...calculateCardless(totalPrice, 12, 0.92218) },
-        { periods: 15, ...calculateCardless(totalPrice, 15, 0.905) },
-        { periods: 18, ...calculateCardless(totalPrice, 18, 0.885) },
-        { periods: 21, ...calculateCardless(totalPrice, 21, 0.8735) },
-        { periods: 24, ...calculateCardless(totalPrice, 24, 0.8624) },
-        { periods: 30, ...calculateCardless(totalPrice, 30, 0.83333) },
-    ];
-
-    const activeRows = mode === 'credit' ? creditRows : cardlessRows;
-
-    return (
-        <div className="mt-4 border-t border-gray-200 pt-4">
-            <div className="flex bg-gray-100 p-1 rounded-xl mb-3">
-                <button 
-                    onClick={() => setMode('credit')}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all ${mode === 'credit' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-black'}`}
-                >
-                    <CreditCard className="h-3.5 w-3.5" /> 刷卡分期
-                </button>
-                <button 
-                    onClick={() => setMode('cardless')}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all ${mode === 'cardless' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-black'}`}
-                >
-                    <Banknote className="h-3.5 w-3.5" /> 無卡分期
-                </button>
-            </div>
-
-            <div className="overflow-hidden rounded-xl border border-gray-200">
-                <table className="w-full text-sm">
-                    <thead className="bg-gray-50 text-gray-500 font-medium text-xs uppercase">
-                        <tr>
-                            <th className="py-2 pl-4 text-left">期數</th>
-                            <th className="py-2 text-right">每期金額</th>
-                            <th className="py-2 pr-4 text-right text-gray-400">總價</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                        {activeRows.map((row) => (
-                            <tr key={row.periods} className="group hover:bg-gray-50 transition-colors">
-                                <td className="py-2.5 pl-4 font-bold text-gray-700">
-                                    {row.periods} 期
-                                </td>
-                                <td className="py-2.5 text-right font-bold text-black font-mono text-base">
-                                    ${row.monthly.toLocaleString()}
-                                </td>
-                                <td className="py-2.5 pr-4 text-right text-gray-400 text-xs font-mono">
-                                    ${row.total.toLocaleString()}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-            <p className="text-[10px] text-gray-400 mt-2 text-center">
-                * 試算金額僅供參考，實際分期利率與總額以{mode === 'credit' ? '銀行' : '審核'}結果為準。
-            </p>
-        </div>
-    );
-};
 
 interface BuilderProps {
   cartItems: CartItem[];
@@ -174,7 +81,6 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
   const [aiExplanation, setAiExplanation] = useState<string>('');
   const [qtySelectorId, setQtySelectorId] = useState<string | null>(null);
 
-  // New state for confirmation modal
   const [confirmModalState, setConfirmModalState] = useState<{
     isOpen: boolean;
     title: string;
@@ -198,26 +104,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
     }
   }, []);
 
-  const primaryCpu = build[Category.CPU]?.[0];
-  const primaryMb = build[Category.MB]?.[0];
-  const primaryRam = build[Category.RAM]?.[0];
   const primaryPsu = build[Category.PSU]?.[0];
-  const primaryCase = build[Category.CASE]?.[0];
-  const primaryGpu = build[Category.GPU]?.[0];
-  const primaryCooler = build[Category.COOLER]?.[0];
-  const primaryAirCooler = build[Category.AIR_COOLER]?.[0];
-
-  const parseWattage = (val?: string): number => {
-    if (!val) return 0;
-    const match = val.match(/(\d+)/);
-    return match ? parseInt(match[0]) : 0;
-  };
-
-  const parseDimension = (val?: string): number => {
-    if (!val) return 9999;
-    const match = val.match(/(\d+)/);
-    return match ? parseInt(match[0]) : 9999;
-  }
 
   const totalTDP = useMemo(() => {
       let tdp = 0;
@@ -256,62 +143,6 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
       if (totalTDP === 0) return 0;
       return Math.ceil((totalTDP * 1.3) / 50) * 50;
   }, [totalTDP]);
-
-  const checkCompatibility = (item: Product): string | null => {
-    if (item.category === Category.MB) {
-        if (primaryCpu?.specDetails?.socket && item.specDetails?.socket !== primaryCpu.specDetails.socket) {
-            return `腳位不符: CPU ${primaryCpu.specDetails.socket} vs MB ${item.specDetails?.socket}`;
-        }
-        if (primaryRam?.specDetails?.type && item.specDetails?.memoryType) {
-            if (primaryRam.specDetails.type !== item.specDetails.memoryType) {
-                return `記憶體不符: RAM ${primaryRam.specDetails.type} vs MB 支援 ${item.specDetails.memoryType}`;
-            }
-        }
-    }
-    if (item.category === Category.CPU && primaryMb?.specDetails?.socket) {
-      if (item.specDetails?.socket !== primaryMb.specDetails.socket) {
-        return `腳位不符: MB ${primaryMb.specDetails.socket} vs CPU ${item.specDetails?.socket}`;
-      }
-    }
-    if (item.category === Category.RAM) {
-        if (primaryMb?.specDetails?.memoryType && item.specDetails?.type !== primaryMb.specDetails.memoryType) {
-             return `記憶體不符: MB 支援 ${primaryMb.specDetails.memoryType} vs RAM ${item.specDetails?.type}`;
-        }
-        const otherRam = build[Category.RAM]?.find(r => r.id !== item.id);
-        if (otherRam && otherRam.specDetails?.type !== item.specDetails?.type) {
-             return `混插警告: ${otherRam.specDetails?.type} 與 ${item.specDetails?.type}`;
-        }
-    }
-    if (item.category === Category.GPU && primaryCase?.specDetails?.gpuLength) {
-        const caseLimit = parseDimension(primaryCase.specDetails.gpuLength);
-        const gpuLen = parseDimension(item.specDetails?.gpuLength);
-        if (gpuLen > caseLimit) {
-            return `顯卡過長: 卡 ${gpuLen}mm > 機殼限 ${caseLimit}mm`;
-        }
-    }
-    if (item.category === Category.CASE && primaryGpu?.specDetails?.gpuLength) {
-        const caseLimit = parseDimension(item.specDetails?.gpuLength);
-        const gpuLen = parseDimension(primaryGpu.specDetails.gpuLength);
-        if (gpuLen > caseLimit) {
-            return `機殼過小: 限長 ${caseLimit}mm < 顯卡 ${gpuLen}mm`;
-        }
-    }
-    if (item.category === Category.AIR_COOLER && primaryCase?.specDetails?.coolerHeight) {
-        const caseLimit = parseDimension(primaryCase.specDetails.coolerHeight);
-        const coolerH = parseDimension(item.specDetails?.coolerHeight);
-        if (coolerH > caseLimit) {
-            return `散熱器過高: 高 ${coolerH}mm > 機殼限 ${caseLimit}mm`;
-        }
-    }
-    if (item.category === Category.CASE && primaryAirCooler?.specDetails?.coolerHeight) {
-        const caseLimit = parseDimension(item.specDetails?.coolerHeight);
-        const coolerH = parseDimension(primaryAirCooler.specDetails.coolerHeight);
-        if (coolerH > caseLimit) {
-            return `機殼過窄: 限高 ${caseLimit}mm < 散熱器 ${coolerH}mm`;
-        }
-    }
-    return null;
-  };
 
   const handleOpenSelection = (category: Category) => {
     setReplacingItemId(null);
@@ -656,12 +487,10 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                     )}
 
                     {hasItems && (
-                        /* Adjusted Layout: Removed padding from container to allow items to align flush with header padding */
                         <div className="flex flex-col">
                             {items.map((item) => {
-                                const errorMsg = checkCompatibility(item);
+                                const errorMsg = checkCompatibility(item, build);
                                 return (
-                                    /* Adjusted Row: Tighter padding and better spacing for text */
                                     <div key={item.uniqueId} className="flex flex-col md:flex-row md:items-center px-3 py-3 md:px-4 border-b border-gray-50 last:border-0 hover:bg-gray-50/80 transition-all relative group/item">
                                         
                                         <div className="flex-1 min-w-0 pr-8 md:pr-0">
@@ -732,7 +561,6 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                                             <div className="absolute inset-0 flex items-center justify-center">
                                                 <ItemIcon className="h-4 w-4 text-gray-400" />
                                             </div>
-                                            {/* Removed image rendering in summary */}
                                         </div>
                                         <div className="min-w-0">
                                             <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded inline-block mb-1 mr-1">{categoryDisplayMap[item.category]?.split(' ')[0] || '其它'}</span>
@@ -756,7 +584,6 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
         </div>
       </div>
 
-      {/* Confirmation Modal */}
       <ConfirmationModal
         isOpen={confirmModalState.isOpen}
         onClose={() => setConfirmModalState(prev => ({ ...prev, isOpen: false }))}
@@ -804,40 +631,6 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
       {isAiModalOpen && (
         <div className="fixed inset-0 z-[75] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={() => setIsAiModalOpen(false)} />
-            <div className="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl p-8 animate-fade-in border border-white/20">
-                <div className="flex justify-between items-start mb-6">
-                    <div className="flex items-center gap-3">
-                        <div className="p-3 bg-black rounded-xl text-white"><Bot className="h-6 w-6" /></div>
-                        <div><h2 className="text-2xl font-bold text-gray-900">AI 智能配單</h2><p className="text-sm text-gray-500">告訴我需求，剩下的交給我。</p></div>
-                    </div>
-                    <button onClick={() => setIsAiModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full"><X className="h-6 w-6" /></button>
-                </div>
-                {!aiExplanation ? (
-                    <div className="space-y-6">
-                         <div>
-                             <label className="block text-sm font-bold text-gray-700 mb-2">預算上限 (NT$)</label>
-                             <div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span><input type="number" value={aiBudget} onChange={(e) => setAiBudget(e.target.value)} className="w-full pl-8 pr-4 py-4 bg-gray-50 border-transparent focus:bg-white focus:border-black focus:ring-0 rounded-xl font-bold text-lg transition-all" placeholder="30000" /></div>
-                         </div>
-                         <div>
-                             <label className="block text-sm font-bold text-gray-700 mb-2">主要用途</label>
-                             <div className="grid grid-cols-2 gap-3">{usagePresets.map(preset => (<button key={preset.label} onClick={() => setAiUsage(preset.value)} className={`p-3 text-left rounded-xl border transition-all ${aiUsage === preset.value ? 'border-black bg-black text-white' : 'border-gray-200 hover:border-gray-400'}`}><div className="font-bold text-sm mb-1">{preset.label}</div><div className={`text-xs ${aiUsage === preset.value ? 'text-gray-300' : 'text-gray-500'} line-clamp-1`}>{preset.value}</div></button>))}</div>
-                             <textarea value={aiUsage} onChange={(e) => setAiUsage(e.target.value)} className="w-full mt-3 p-4 bg-gray-50 border-transparent focus:bg-white focus:border-black focus:ring-0 rounded-xl text-sm transition-all resize-none" rows={3} placeholder="或手動輸入詳細需求..." />
-                         </div>
-                         <button onClick={handleAiAutoBuild} disabled={isAiLoading || !aiBudget || !aiUsage} className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">{isAiLoading ? (<><Loader2 className="h-5 w-5 animate-spin" /> AI 思考中...</>) : (<><Sparkles className="h-5 w-5" /> 生成配置單</>)}</button>
-                    </div>
-                ) : (
-                    <div className="space-y-6 animate-fade-in">
-                         <div className="bg-green-50 p-6 rounded-2xl border border-green-100"><div className="flex items-start gap-3"><Check className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" /><div><h3 className="font-bold text-green-800 text-lg mb-2">配單完成！</h3><p className="text-green-700 text-sm leading-relaxed whitespace-pre-line">{aiExplanation}</p></div></div></div>
-                         <div className="flex gap-4"><button onClick={() => { setIsAiModalOpen(false); setAiExplanation(''); }} className="flex-1 py-3 border border-gray-200 text-gray-600 rounded-xl font-bold hover:bg-gray-50">關閉</button><button onClick={() => { setAiExplanation(''); }} className="flex-1 py-3 bg-black text-white rounded-xl font-bold hover:bg-gray-800">再試一次</button></div>
-                    </div>
-                )}
-            </div>
-        </div>
-      )}
-      
-      {isModalOpen && activeCategory && (
-         <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center sm:p-4">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
             <div className="relative bg-white w-full md:max-w-7xl h-[92vh] md:h-[90vh] rounded-t-3xl md:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-slide-up md:animate-fade-in">
                 <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white z-10 flex-shrink-0">
                     <div><h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">{replacingItemId ? <RefreshCw className="h-5 w-5 text-blue-600" /> : <Plus className="h-5 w-5" />}{replacingItemId ? '更換' : '選擇'} {categoryDisplayMap[activeCategory]}</h2></div>
