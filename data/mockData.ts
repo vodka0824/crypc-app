@@ -22,40 +22,42 @@ export const categoryFilters: Record<string, FilterConfig[]> = {
     { key: 'type', label: '尺寸規格' },
   ],
   [Category.GPU]: [
-    { key: 'brand', label: '晶片廠商' },
+    { key: 'brand', label: '品牌' }, // Standardized label
     { key: 'series', label: '顯卡系列' },
     { key: 'vram', label: '記憶體容量' },
-    { key: 'gpuLength', label: '顯卡長度' }, // New
+    { key: 'gpuLength', label: '顯卡長度' }, 
     { key: 'tdp', label: 'TDP 功耗' },
   ],
   [Category.RAM]: [
-    { key: 'clock', label: '記憶體時脈' }, // Changed from '記憶體規格'
-    { key: 'type', label: '記憶體規格' },  // Added for DDR4/DDR5
+    { key: 'brand', label: '品牌' }, // Added
+    { key: 'clock', label: '記憶體時脈' }, 
+    { key: 'type', label: '記憶體規格' }, 
     { key: 'capacity', label: '總容量' },
   ],
   [Category.SSD]: [
+    { key: 'brand', label: '品牌' }, // Added
     { key: 'capacity', label: '容量' },
     { key: 'type', label: '介面' },
   ],
   [Category.CASE]: [
     { key: 'brand', label: '品牌' },
     { key: 'type', label: '尺寸' },
-    { key: 'radiatorSupport', label: '水冷排支援' }, // New
-    { key: 'coolerHeight', label: '散熱器高度' }, // New (Max height)
-    { key: 'gpuLength', label: '顯卡長度' }, // New (Max length)
+    { key: 'radiatorSupport', label: '水冷排支援' }, 
+    { key: 'coolerHeight', label: '散熱器高度' }, 
+    { key: 'gpuLength', label: '顯卡長度' }, 
   ],
   [Category.PSU]: [
+    { key: 'brand', label: '品牌' },
     { key: 'wattage', label: '瓦數' },
     { key: 'efficiency', label: '轉換效率' },
-    { key: 'brand', label: '品牌' },
   ],
   [Category.COOLER]: [
+    { key: 'brand', label: '品牌' },
     { key: 'type', label: '散熱類型' },
     { key: 'size', label: '尺寸' },
-    { key: 'brand', label: '品牌' },
-    { key: 'features', label: '特色' }, // Added
+    { key: 'features', label: '特色' }, 
   ],
-  [Category.AIR_COOLER]: [ // New Category Filters
+  [Category.AIR_COOLER]: [ 
     { key: 'brand', label: '品牌' },
     { key: 'coolerHeight', label: '高度' },
     { key: 'socket', label: '支援腳位' },
@@ -63,7 +65,7 @@ export const categoryFilters: Record<string, FilterConfig[]> = {
   [Category.MONITOR]: [
     { key: 'brand', label: '品牌' },
     { key: 'resolution', label: '解析度' },
-    { key: 'panelType', label: '面板型態' }, // Added
+    { key: 'panelType', label: '面板型態' }, 
     { key: 'size', label: '尺寸' },
     { key: 'refreshRate', label: '更新率' },
   ],
@@ -71,7 +73,9 @@ export const categoryFilters: Record<string, FilterConfig[]> = {
     { key: 'brand', label: '發行商' },
     { key: 'licenseType', label: '授權類型' },
   ],
-  [Category.OTHERS]: [], // No specific filters for OTHERS
+  [Category.OTHERS]: [
+    { key: 'brand', label: '品牌' }, // Added
+  ], 
 };
 
 export const categoryDisplayMap: Record<string, string> = {
@@ -133,25 +137,25 @@ export const initialProducts: Product[] = [
   // GPU
   { 
     id: 'gpu-1', name: 'ASUS ROG RTX 4090 O24G', price: 62000, category: Category.GPU, description: '24G GDDR6X/35.8cm/三風扇/3.5 slot', image: '', 
-    specDetails: { brand: 'NVIDIA', series: 'RTX 40 Series', vram: '24GB', tdp: '450W', gpuLength: '358mm' } 
+    specDetails: { brand: 'ASUS', series: 'RTX 40 Series', vram: '24GB', tdp: '450W', gpuLength: '358mm' } 
   },
   { 
     id: 'gpu-2', name: 'Gigabyte RTX 4060 Eagle OC', price: 10990, category: Category.GPU, description: '8G GDDR6/24.2cm/三風扇/雙槽', image: '', 
-    specDetails: { brand: 'NVIDIA', series: 'RTX 40 Series', vram: '8GB', tdp: '115W', gpuLength: '242mm' } 
+    specDetails: { brand: 'Gigabyte', series: 'RTX 40 Series', vram: '8GB', tdp: '115W', gpuLength: '242mm' } 
   },
   // RAM (Updated with clock)
   { 
     id: 'ram-1', name: 'G.SKILL Trident Z5 RGB', price: 4500, category: Category.RAM, description: '32GB(16Gx2) DDR5-6000/CL30/黑銀', image: '', 
-    specDetails: { type: 'DDR5', capacity: '32GB', clock: '6000' } 
+    specDetails: { brand: 'G.SKILL', type: 'DDR5', capacity: '32GB', clock: '6000' } 
   },
   { 
     id: 'ram-2', name: 'Kingston Fury Beast', price: 1600, category: Category.RAM, description: '16GB(8Gx2) DDR4-3200/CL16/黑', image: '', 
-    specDetails: { type: 'DDR4', capacity: '16GB', clock: '3200' } 
+    specDetails: { brand: 'Kingston', type: 'DDR4', capacity: '16GB', clock: '3200' } 
   },
   // SSD
   { 
     id: 'ssd-1', name: 'Samsung 990 PRO 2TB', price: 5800, category: Category.SSD, description: 'M.2 PCIe 4.0/讀:7450M/寫:6900M/TLC', image: '', 
-    specDetails: { capacity: '2TB', type: 'M.2 NVMe' } 
+    specDetails: { brand: 'Samsung', capacity: '2TB', type: 'M.2 NVMe' } 
   },
   // Case (Updated with new fields)
   { 
@@ -161,12 +165,12 @@ export const initialProducts: Product[] = [
   // PSU
   { 
     id: 'psu-1', name: 'Seasonic Vertex GX-1000', price: 6490, category: Category.PSU, description: '1000W/金牌/全模組/ATX3.0/10年保', image: '', 
-    specDetails: { wattage: '1000W', brand: 'Seasonic', efficiency: '金牌' } 
+    specDetails: { brand: 'Seasonic', wattage: '1000W', efficiency: '金牌' } 
   },
   // Cooler (Liquid)
   { 
     id: 'cooler-1', name: 'NZXT Kraken Elite 360', price: 9990, category: Category.COOLER, description: '360mm/2.36吋LCD/FDB風扇/6年保', image: '', 
-    specDetails: { type: '水冷', brand: 'NZXT', size: '360mm', coolerHeight: '52mm', features: 'LCD螢幕' } 
+    specDetails: { brand: 'NZXT', type: '水冷', size: '360mm', coolerHeight: '52mm', features: 'LCD螢幕' } 
   },
   // Air Cooler (New Mock Item)
   {
