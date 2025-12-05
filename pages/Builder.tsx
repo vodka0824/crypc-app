@@ -437,6 +437,9 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
   const wattagePercentage = currentPsuWattage > 0 ? (totalTDP / currentPsuWattage) * 100 : (totalTDP / recommendedPsuWattage) * 100;
   const wattageColor = wattagePercentage > 90 ? 'bg-red-500' : wattagePercentage > 70 ? 'bg-yellow-500' : 'bg-green-500';
 
+  // Safe access for filters
+  const currentFilters = activeCategory ? categoryFilters[activeCategory] : [];
+
   return (
     <div className="max-w-7xl mx-auto px-2 md:px-4 py-4 md:py-10 pb-32 md:pb-12">
       <style>
@@ -633,7 +636,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
             <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={() => setIsAiModalOpen(false)} />
             <div className="relative bg-white w-full md:max-w-7xl h-[92vh] md:h-[90vh] rounded-t-3xl md:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-slide-up md:animate-fade-in">
                 <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white z-10 flex-shrink-0">
-                    <div><h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">{replacingItemId ? <RefreshCw className="h-5 w-5 text-blue-600" /> : <Plus className="h-5 w-5" />}{replacingItemId ? '更換' : '選擇'} {categoryDisplayMap[activeCategory]}</h2></div>
+                    <div><h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">{replacingItemId ? <RefreshCw className="h-5 w-5 text-blue-600" /> : <Plus className="h-5 w-5" />}{replacingItemId ? '更換' : '選擇'} {activeCategory ? categoryDisplayMap[activeCategory] : ''}</h2></div>
                     <button onClick={() => setIsModalOpen(false)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"><X className="h-5 w-5" /></button>
                 </div>
                 <div className="flex flex-1 min-h-0">
@@ -641,8 +644,8 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                         <div className="p-3">
                             <div className="flex items-center justify-between mb-6"><div className="flex items-center gap-2 text-gray-500 font-bold text-sm uppercase tracking-wider"><ListFilter className="h-4 w-4" /> 篩選條件</div>{Object.keys(activeFilters).length > 0 && (<button onClick={() => setActiveFilters({})} className="text-xs text-blue-600 hover:text-blue-800 font-bold hover:underline">清除全部</button>)}</div>
                             <div className="space-y-1">
-                                {categoryFilters[activeCategory!]?.map(filter => {
-                                    const options = getSmartOptions(activeCategory!, filter.key);
+                                {activeCategory && categoryFilters[activeCategory]?.map(filter => {
+                                    const options = getSmartOptions(activeCategory, filter.key);
                                     if (options.length === 0) return null;
                                     const isExpanded = expandedNodes[filter.key] ?? true;
                                     const activeCount = activeFilters[filter.key]?.length || 0;
@@ -669,7 +672,6 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                                              <div key={product.id} className="group border border-gray-100 rounded-2xl p-4 hover:shadow-lg hover:border-gray-200 transition-all flex flex-col bg-white">
                                                  <div className="flex gap-4 mb-3">
                                                      <div className="w-16 h-16 bg-gray-50 rounded-xl flex-shrink-0 flex items-center justify-center p-1 border border-gray-100 overflow-hidden relative">
-                                                         {/* Image handling without hooks in loop */}
                                                          <div className="absolute inset-0 flex items-center justify-center"><Box className="h-8 w-8 text-gray-300" /></div>
                                                          {product.image && (
                                                              <img 
@@ -701,7 +703,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                              </div>
                          </div>
                     </div>
-                    {mobileFiltersOpen && (<div className="absolute inset-0 z-30 bg-white flex flex-col lg:hidden animate-fade-in"><div className="p-4 border-b border-gray-100 flex justify-between items-center bg-white shadow-sm flex-shrink-0"><h3 className="font-bold text-lg">篩選條件</h3><button onClick={() => setMobileFiltersOpen(false)} className="p-2 bg-gray-100 rounded-full text-gray-600"><X className="h-5 w-5" /></button></div><div className="flex-1 overflow-y-auto p-4 custom-scrollbar"><div className="space-y-6">{categoryFilters[activeCategory!]?.map(filter => { const options = getSmartOptions(activeCategory!, filter.key); if (options.length === 0) return null; return (<div key={filter.key}><h4 className="font-bold text-gray-900 mb-2 text-sm">{filter.label}</h4><div className="flex flex-wrap gap-2">{options.map(option => { const isChecked = activeFilters[filter.key]?.includes(option); return (<button key={option} onClick={() => toggleFilter(filter.key as string, option)} className={`px-3 py-1.5 rounded-lg text-sm border transition-all ${isChecked ? 'bg-black text-white border-black font-bold' : 'bg-white text-gray-600 border-gray-200'}`}>{option}</button>) })}</div></div>); })}</div></div><div className="p-4 border-t border-gray-100 bg-white flex-shrink-0"><button onClick={() => setMobileFiltersOpen(false)} className="w-full py-3 bg-black text-white rounded-xl font-bold">查看 {filteredModalProducts.length} 個結果</button></div></div>)}
+                    {mobileFiltersOpen && activeCategory && (<div className="absolute inset-0 z-30 bg-white flex flex-col lg:hidden animate-fade-in"><div className="p-4 border-b border-gray-100 flex justify-between items-center bg-white shadow-sm flex-shrink-0"><h3 className="font-bold text-lg">篩選條件</h3><button onClick={() => setMobileFiltersOpen(false)} className="p-2 bg-gray-100 rounded-full text-gray-600"><X className="h-5 w-5" /></button></div><div className="flex-1 overflow-y-auto p-4 custom-scrollbar"><div className="space-y-6">{categoryFilters[activeCategory]?.map(filter => { const options = getSmartOptions(activeCategory, filter.key); if (options.length === 0) return null; return (<div key={filter.key}><h4 className="font-bold text-gray-900 mb-2 text-sm">{filter.label}</h4><div className="flex flex-wrap gap-2">{options.map(option => { const isChecked = activeFilters[filter.key]?.includes(option); return (<button key={option} onClick={() => toggleFilter(filter.key as string, option)} className={`px-3 py-1.5 rounded-lg text-sm border transition-all ${isChecked ? 'bg-black text-white border-black font-bold' : 'bg-white text-gray-600 border-gray-200'}`}>{option}</button>) })}</div></div>); })}</div></div><div className="p-4 border-t border-gray-100 bg-white flex-shrink-0"><button onClick={() => setMobileFiltersOpen(false)} className="w-full py-3 bg-black text-white rounded-xl font-bold">查看 {filteredModalProducts.length} 個結果</button></div></div>)}
                 </div>
             </div>
          </div>
