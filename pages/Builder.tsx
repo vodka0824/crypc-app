@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { Category, Product, BuildState, BuilderItem, ProductSpecs, BuildTemplate, CartItem } from '../types';
-import { Plus, Check, RotateCcw, X, ChevronDown, ChevronRight, Cpu, Minus, Trash2, AlertTriangle, SlidersHorizontal, ListFilter, Eraser, Monitor, Disc, Save, FolderOpen, Search, RefreshCw, Sparkles, Loader2, Bot, Share2, Copy, StickyNote, Box, Fan, Wind, Zap, ShoppingCart, CircuitBoard, HardDrive, Gamepad2, Droplets, Mouse, MemoryStick, Clock, ArrowRight } from 'lucide-react';
+import { Plus, Check, RotateCcw, X, ChevronDown, ChevronRight, Cpu, Minus, Trash2, AlertTriangle, SlidersHorizontal, ListFilter, Eraser, Monitor, Disc, Save, FolderOpen, Search, RefreshCw, Sparkles, Loader2, Bot, Share2, Copy, StickyNote, Box, Fan, Wind, Zap, ShoppingCart, CircuitBoard, HardDrive, Gamepad2, Droplets, Mouse, MemoryStick, Clock, ArrowRight, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { categoryFilters, categoryDisplayMap } from '../data/mockData';
 import { useProducts } from '../contexts/ProductContext';
 import { generateSmartBuild } from '../services/geminiService';
@@ -422,6 +422,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
         case 'price-asc': products.sort((a, b) => a.price - b.price); break;
         case 'price-desc': products.sort((a, b) => b.price - a.price); break;
         case 'name-asc': products.sort((a, b) => a.name.localeCompare(b.name)); break;
+        case 'name-desc': products.sort((a, b) => b.name.localeCompare(a.name)); break;
     }
     return products;
   }, [activeCategory, activeFilters, allProducts, modalSort, searchQuery]);
@@ -767,6 +768,37 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                     </div>
                     <div className="flex-1 flex flex-col min-w-0 bg-white relative">
                          <div className="lg:hidden p-4 border-b border-gray-100 flex-shrink-0"><button onClick={() => setMobileFiltersOpen(true)} className="w-full flex items-center justify-center gap-2 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-bold text-sm"><SlidersHorizontal className="h-4 w-4" /> 篩選條件 {Object.keys(activeFilters).length > 0 && `(${Object.keys(activeFilters).length})`}</button></div>
+                         
+                         {/* Header Row for Name/Price Sorting */}
+                         <div className="px-6 py-3 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center text-sm sticky top-0 z-20 backdrop-blur-sm">
+                            <div 
+                                className="font-bold text-gray-600 hover:text-black cursor-pointer flex items-center gap-1 transition-colors select-none group"
+                                onClick={() => setModalSort(prev => {
+                                    if (prev === 'name-asc') return 'name-desc';
+                                    if (prev === 'name-desc') return 'default';
+                                    return 'name-asc';
+                                })}
+                            >
+                                商品名稱
+                                {modalSort === 'name-asc' && <ArrowUp className="h-3.5 w-3.5 text-black" />}
+                                {modalSort === 'name-desc' && <ArrowDown className="h-3.5 w-3.5 text-black" />}
+                                {modalSort !== 'name-asc' && modalSort !== 'name-desc' && <ArrowUpDown className="h-3.5 w-3.5 text-gray-400 group-hover:text-gray-600" />}
+                            </div>
+                            <div 
+                                className="font-bold text-gray-600 hover:text-black cursor-pointer flex items-center gap-1 transition-colors select-none group"
+                                onClick={() => setModalSort(prev => {
+                                    if (prev === 'price-asc') return 'price-desc';
+                                    if (prev === 'price-desc') return 'default';
+                                    return 'price-asc';
+                                })}
+                            >
+                                金額
+                                {modalSort === 'price-asc' && <ArrowUp className="h-3.5 w-3.5 text-black" />}
+                                {modalSort === 'price-desc' && <ArrowDown className="h-3.5 w-3.5 text-black" />}
+                                {modalSort !== 'price-asc' && modalSort !== 'price-desc' && <ArrowUpDown className="h-3.5 w-3.5 text-gray-400 group-hover:text-gray-600" />}
+                            </div>
+                         </div>
+
                          <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
                              {/* Changed from Grid to List Layout */}
                              <div className="flex flex-col gap-3 pb-12">
