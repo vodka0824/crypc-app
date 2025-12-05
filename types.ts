@@ -16,6 +16,7 @@ export enum Category {
 
 export interface ProductSpecs {
   brand?: string;       // 品牌 (Intel, AMD, ASUS...)
+  platform?: string;    // 平台架構 (Intel/AMD) - New Field
   socket?: string;      // 腳位 (LGA1700, AM5...)
   chipset?: string;     // 晶片組 (Z790, B760...)
   series?: string;      // 系列 (RTX 40, RX 7000...)
