@@ -475,8 +475,11 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                             </div>
                         </div>
                     ) : (
-                        <div className="flex flex-col md:flex-row md:items-center justify-between p-3 md:p-4 transition-colors gap-4">
-                            <div onClick={() => handleOpenSelection(slot.category)} className="flex items-center gap-4 group-hover:opacity-100 transition-opacity cursor-pointer flex-1">
+                        <div 
+                            onClick={() => handleOpenSelection(slot.category)} 
+                            className="flex flex-col md:flex-row md:items-center justify-between p-3 md:p-4 transition-all duration-200 gap-4 cursor-pointer hover:bg-gray-50/80 active:bg-gray-100"
+                        >
+                            <div className="flex items-center gap-4 group-hover:opacity-100 transition-opacity flex-1">
                                 <div className="p-2 rounded-md bg-gray-100 text-gray-500 group-hover:text-gray-800 transition-colors">
                                     <slot.icon className="h-5 w-5 md:h-6 md:w-6" />
                                 </div>
@@ -485,7 +488,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                                     <span className="text-xs text-gray-500 font-medium hidden md:block">點擊選擇商品</span>
                                 </div>
                             </div>
-                            <div onClick={() => handleOpenSelection(slot.category)} className="md:hidden text-xs text-gray-400 flex items-center gap-1 font-medium justify-end"><span>選擇</span> <ChevronRight className="h-4 w-4" /></div>
+                            <div className="md:hidden text-xs text-gray-400 flex items-center gap-1 font-medium justify-end"><span>選擇</span> <ChevronRight className="h-4 w-4" /></div>
                         </div>
                     )}
 
