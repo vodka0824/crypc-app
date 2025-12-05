@@ -1,9 +1,10 @@
 
+// pages/Admin.tsx
 import React, { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useProducts } from '../contexts/ProductContext';
 import { Category, Product, ProductSpecs } from '../types';
-import { Upload, Database, Plus, Search, X, DollarSign, Loader2, Package, FileText, Settings } from 'lucide-react';
+import { Upload, Database, Plus, Search, X, DollarSign, Loader2, Package, FileText } from 'lucide-react';
 
 import AdminHeader from '../components/admin/AdminHeader';
 import FilterControls from '../components/admin/FilterControls';
@@ -309,15 +310,15 @@ const Admin: React.FC = () => {
     <div className="h-[calc(100vh-64px)] flex flex-col bg-[#F5F5F7]">
       
       {/* 1. Header & Tab Navigation */}
-      <div className="flex-shrink-0 pt-6 bg-[#F5F5F7] z-30">
+      <div className="flex-shrink-0 pt-4 md:pt-6 bg-[#F5F5F7] z-30">
         <div className="max-w-[1280px] mx-auto px-4 md:px-8 w-full">
             <AdminHeader isLoading={isLoading} />
             
             {/* Tabs */}
-            <div className="flex gap-4 border-b border-gray-200 mb-4">
+            <div className="flex gap-4 border-b border-gray-200 mb-4 overflow-x-auto hide-scrollbar">
               <button 
                 onClick={() => setActiveTab('products')}
-                className={`pb-3 px-1 text-sm font-bold flex items-center gap-2 transition-all relative ${
+                className={`pb-3 px-1 text-sm font-bold flex items-center gap-2 transition-all relative whitespace-nowrap ${
                   activeTab === 'products' ? 'text-black' : 'text-gray-400 hover:text-gray-600'
                 }`}
               >
@@ -326,7 +327,7 @@ const Admin: React.FC = () => {
               </button>
               <button 
                 onClick={() => setActiveTab('quotation')}
-                className={`pb-3 px-1 text-sm font-bold flex items-center gap-2 transition-all relative ${
+                className={`pb-3 px-1 text-sm font-bold flex items-center gap-2 transition-all relative whitespace-nowrap ${
                   activeTab === 'quotation' ? 'text-black' : 'text-gray-400 hover:text-gray-600'
                 }`}
               >
@@ -339,22 +340,22 @@ const Admin: React.FC = () => {
 
       {/* 2. Content Area */}
       <div className="flex-1 min-h-0 w-full overflow-hidden">
-        <div className="h-full max-w-[1280px] mx-auto px-4 md:px-8 pb-4">
+        <div className="h-full max-w-[1280px] mx-auto px-2 md:px-8 pb-0 md:pb-4">
             
             {/* -- Tab: Products -- */}
             {activeTab === 'products' && (
               <div className="flex flex-col h-full">
-                {/* Product Toolbar */}
-                <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between bg-white p-3 rounded-2xl shadow-sm border border-gray-200 mb-4 flex-shrink-0">
+                {/* Product Toolbar - Mobile Stacked, Desktop Row */}
+                <div className="flex flex-col md:flex-row gap-3 md:gap-4 items-stretch md:items-center justify-between bg-white p-3 md:p-3 rounded-2xl shadow-sm border border-gray-200 mb-3 flex-shrink-0">
                   {/* Search Input */}
-                  <div className="relative flex-1">
+                  <div className="relative flex-1 w-full">
                       <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                       <input 
                           type="text" 
-                          placeholder="搜尋商品名稱、ID..." 
+                          placeholder="搜尋商品..." 
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          className="w-full pl-12 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-black focus:border-transparent focus:bg-white transition-all font-medium"
+                          className="w-full pl-12 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-black focus:border-transparent focus:bg-white transition-all font-medium text-sm md:text-base"
                       />
                       {searchQuery && (
                           <button 
@@ -366,16 +367,16 @@ const Admin: React.FC = () => {
                       )}
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex gap-3 shrink-0 overflow-x-auto hide-scrollbar pb-1 md:pb-0">
-                      <button onClick={() => setIsImporting(true)} className={`${buttonBaseClass} ${buttonSecondaryClass}`}>
-                          <Upload className="h-4 w-4" /> <span className="whitespace-nowrap">匯入</span>
+                  {/* Action Buttons - Horizontal Scroll on Mobile */}
+                  <div className="flex gap-2 md:gap-3 shrink-0 overflow-x-auto hide-scrollbar pb-1 md:pb-0">
+                      <button onClick={() => setIsImporting(true)} className={`${buttonBaseClass} ${buttonSecondaryClass} whitespace-nowrap`}>
+                          <Upload className="h-4 w-4" /> <span className="">匯入</span>
                       </button>
-                      <button onClick={handleResetDb} className={`${buttonBaseClass} ${buttonSecondaryClass}`} title="重置為預設資料">
-                          <Database className="h-4 w-4" /> <span className="whitespace-nowrap">初始化</span>
+                      <button onClick={handleResetDb} className={`${buttonBaseClass} ${buttonSecondaryClass} whitespace-nowrap`} title="重置為預設資料">
+                          <Database className="h-4 w-4" /> <span className="">初始化</span>
                       </button>
-                      <button onClick={handleAddNew} className={`${buttonBaseClass} ${buttonPrimaryClass}`}>
-                          <Plus className="h-4 w-4" /> <span className="whitespace-nowrap">新增</span>
+                      <button onClick={handleAddNew} className={`${buttonBaseClass} ${buttonPrimaryClass} whitespace-nowrap`}>
+                          <Plus className="h-4 w-4" /> <span className="">新增</span>
                       </button>
                   </div>
                 </div>
@@ -390,7 +391,7 @@ const Admin: React.FC = () => {
                 </div>
 
                 {/* Table Container (Flex Grow) */}
-                <div className="flex-1 min-h-0 mt-4">
+                <div className="flex-1 min-h-0 mt-2 md:mt-4">
                   <ProductTable
                     isLoading={isLoading}
                     products={products}
@@ -408,7 +409,7 @@ const Admin: React.FC = () => {
 
             {/* -- Tab: Quotation Settings -- */}
             {activeTab === 'quotation' && (
-              <div className="h-full overflow-y-auto custom-scrollbar pb-20">
+              <div className="h-full overflow-y-auto custom-scrollbar pb-20 px-2">
                  <QuotationSettingsForm />
               </div>
             )}
