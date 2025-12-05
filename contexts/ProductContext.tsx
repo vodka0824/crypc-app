@@ -1,6 +1,6 @@
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { Product } from '../types';
+import { Product, QuotationSettings } from '../types';
 import { initialProducts } from '../data/mockData';
 import { db } from '../firebaseConfig';
 import { 
@@ -10,45 +10,81 @@ import {
   deleteDoc, 
   onSnapshot, 
   writeBatch, 
-  updateDoc
+  updateDoc,
+  getDoc
 } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 
 interface ProductContextType {
   products: Product[];
+  quotationSettings: QuotationSettings;
   addProduct: (product: Product) => Promise<void>;
   updateProduct: (updatedProduct: Product) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
   importProducts: (newProducts: Product[]) => Promise<void>;
   resetToDefault: () => Promise<void>;
+  updateQuotationSettings: (settings: QuotationSettings) => Promise<void>;
   isLoading: boolean;
 }
+
+const defaultQuotationSettings: QuotationSettings = {
+  companyName: '哭PC (CryPC)',
+  companyAddress: '台北市中正區數位大道 101 號',
+  companyPhone: '0800-888-999',
+  companyEmail: 'service@crypc.com',
+  terms: [
+    '本報價單有效期限為 7 天。',
+    '產品價格可能因市場波動而調整，以實際下單當日為準。',
+    '自備零件組裝費另計，軟體安裝僅提供正版授權安裝服務。',
+    '如遇缺貨，本公司保留更換同級產品之權利。'
+  ],
+  footerText: 'Powered by CryPC Quotation System'
+};
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
 export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [quotationSettings, setQuotationSettings] = useState<QuotationSettings>(defaultQuotationSettings);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Real-time listener for Firebase Firestore
+  // Real-time listener for Firebase Firestore (Products)
   useEffect(() => {
     setIsLoading(true);
     // Subscribe to the "products" collection
-    const unsubscribe = onSnapshot(collection(db, "products"), 
+    const unsubscribeProducts = onSnapshot(collection(db, "products"), 
       (snapshot) => {
         const productList = snapshot.docs.map(doc => doc.data() as Product);
         setProducts(productList);
         setIsLoading(false);
       },
       (error) => {
-        console.error("Firebase Snapshot Error:", error);
-        toast.error("無法連接至資料庫");
+        console.error("Firebase Snapshot Error (Products):", error);
+        toast.error("無法連接至商品資料庫");
         setIsLoading(false);
       }
     );
 
+    // Fetch Quotation Settings (Single Document)
+    const fetchSettings = async () => {
+        try {
+            const docRef = doc(db, "settings", "quotation");
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                setQuotationSettings(docSnap.data() as QuotationSettings);
+            } else {
+                // Initialize default if not exists
+                await setDoc(docRef, defaultQuotationSettings);
+            }
+        } catch (e) {
+            console.error("Error fetching settings:", e);
+            // Non-blocking error, keep defaults
+        }
+    };
+    fetchSettings();
+
     // Cleanup subscription on unmount
-    return () => unsubscribe();
+    return () => unsubscribeProducts();
   }, []);
 
   const addProduct = async (product: Product) => {
@@ -108,7 +144,6 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const resetToDefault = async () => {
-    // Confirmation moved to UI layer (Admin.tsx)
     setIsLoading(true);
     try {
       // 1. Delete all existing documents
@@ -137,8 +172,30 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   };
 
+  const updateQuotationSettings = async (settings: QuotationSettings) => {
+      try {
+          await setDoc(doc(db, "settings", "quotation"), settings);
+          setQuotationSettings(settings);
+          toast.success("報價單設定已更新");
+      } catch (e) {
+          console.error("Error updating settings: ", e);
+          toast.error("設定更新失敗");
+          throw e;
+      }
+  };
+
   return (
-    <ProductContext.Provider value={{ products, addProduct, updateProduct, deleteProduct, importProducts, resetToDefault, isLoading }}>
+    <ProductContext.Provider value={{ 
+        products, 
+        quotationSettings,
+        addProduct, 
+        updateProduct, 
+        deleteProduct, 
+        importProducts, 
+        resetToDefault,
+        updateQuotationSettings,
+        isLoading 
+    }}>
       {children}
     </ProductContext.Provider>
   );
