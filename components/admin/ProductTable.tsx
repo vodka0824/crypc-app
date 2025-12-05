@@ -3,7 +3,7 @@
 import React from 'react';
 import { Category, Product } from '../../types';
 import { categoryDisplayMap, categoryFilters } from '../../data/mockData';
-import { Loader2, Square, CheckSquare, Edit, Trash2, Clock, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Square, CheckSquare, Edit, Trash2, Clock, Image as ImageIcon, Box } from 'lucide-react';
 
 interface ProductTableProps {
   isLoading: boolean;
@@ -44,10 +44,104 @@ const ProductTable: React.FC<ProductTableProps> = ({
     });
   };
 
+  if (isLoading) {
+    return (
+      <div className="h-64 flex flex-col items-center justify-center text-gray-400 gap-3 bg-white rounded-3xl border border-gray-200">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span>讀取資料中...</span>
+      </div>
+    );
+  }
+
+  if (filteredProducts.length === 0) {
+    return (
+      <div className="h-64 flex flex-col items-center justify-center text-gray-400 bg-white rounded-3xl border border-gray-200 p-8 text-center">
+        <Box className="h-12 w-12 mb-2 opacity-20" />
+        <p>{products.length === 0 ? '資料庫為空，請點擊上方「初始化」按鈕寫入預設資料。' : '找不到符合搜尋條件的商品'}</p>
+      </div>
+    );
+  }
+
   return (
-    // Fixed height container acting as the "Scroll View"
-    <div className="h-full bg-white rounded-3xl border border-gray-200 shadow-sm flex flex-col overflow-hidden">
-      <div className="flex-1 overflow-auto custom-scrollbar">
+    <div className="h-full flex flex-col bg-transparent md:bg-white md:rounded-3xl md:border md:border-gray-200 md:shadow-sm overflow-hidden">
+      
+      {/* --- Mobile View: Card List (Visible only on small screens) --- */}
+      <div className="md:hidden flex-1 overflow-y-auto pb-24 px-1">
+        <div className="flex justify-between items-center mb-3 px-1">
+            <button onClick={onSelectAll} className="flex items-center gap-2 text-sm font-bold text-gray-500">
+                {selectedIds.size > 0 && selectedIds.size === filteredProducts.length ? <CheckSquare className="h-5 w-5 text-black" /> : <Square className="h-5 w-5" />}
+                全選
+            </button>
+            <span className="text-xs text-gray-400">{filteredProducts.length} 個商品</span>
+        </div>
+
+        <div className="space-y-3">
+            {filteredProducts.map(product => {
+                const isSelected = selectedIds.has(product.id);
+                return (
+                    <div 
+                        key={product.id} 
+                        className={`bg-white p-4 rounded-2xl border transition-all relative overflow-hidden ${isSelected ? 'border-black ring-1 ring-black shadow-md' : 'border-gray-100 shadow-sm'}`}
+                        onClick={() => onSelectOne(product.id)}
+                    >
+                        <div className="flex gap-4">
+                            {/* Checkbox Area */}
+                            <div className="flex-shrink-0 pt-1">
+                                <div className={`transition-colors ${isSelected ? 'text-black' : 'text-gray-300'}`}>
+                                    {isSelected ? <CheckSquare className="h-6 w-6" /> : <Square className="h-6 w-6" />}
+                                </div>
+                            </div>
+
+                            {/* Content */}
+                            <div className="flex-1 min-w-0 space-y-2">
+                                <div className="flex justify-between items-start gap-2">
+                                    <h3 className="font-bold text-gray-900 leading-tight line-clamp-2 text-sm">
+                                        {product.name}
+                                    </h3>
+                                    <span className="flex-shrink-0 font-bold font-mono text-base text-black">
+                                        ${product.price.toLocaleString()}
+                                    </span>
+                                </div>
+                                
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="bg-gray-100 text-gray-600 text-[10px] px-2 py-0.5 rounded-full font-bold">
+                                        {categoryDisplayMap[product.category]}
+                                    </span>
+                                    <span className="text-[10px] text-gray-400 font-mono">
+                                        {product.id}
+                                    </span>
+                                </div>
+
+                                <div className="pt-2 border-t border-gray-50 flex justify-between items-end">
+                                    <span className="text-[10px] text-gray-300 flex items-center gap-1">
+                                        <Clock className="h-3 w-3" /> {formatTime(product.lastUpdated)}
+                                    </span>
+                                    
+                                    <div className="flex gap-2">
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); onEdit(product); }} 
+                                            className="p-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-200 active:scale-95 transition-all"
+                                        >
+                                            <Edit className="h-4 w-4" />
+                                        </button>
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); onDelete(product.id); }} 
+                                            className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 active:scale-95 transition-all"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+      </div>
+
+      {/* --- Desktop View: Table (Visible only on md+ screens) --- */}
+      <div className="hidden md:block flex-1 overflow-auto custom-scrollbar">
         <table className="w-full text-left border-collapse">
           {/* Sticky Header: Sticks to the top of this container */}
           <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-30 shadow-sm">
@@ -84,23 +178,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {isLoading ? (
-              <tr>
-                <td colSpan={10} className="p-12 text-center text-gray-400">
-                  <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                    <span>讀取資料中...</span>
-                  </div>
-                </td>
-              </tr>
-            ) : filteredProducts.length === 0 ? (
-              <tr>
-                <td colSpan={10} className="p-12 text-center text-gray-400">
-                  {products.length === 0 ? '資料庫為空，請點擊上方「初始化」按鈕寫入預設資料。' : '找不到符合搜尋條件的商品'}
-                </td>
-              </tr>
-            ) : (
-              filteredProducts.map(product => {
+            {filteredProducts.map(product => {
                 const isSelected = selectedIds.has(product.id);
                 const showImage = product.category === Category.CASE;
 
@@ -186,8 +264,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                     </td>
                   </tr>
                 )
-              })
-            )}
+            })}
           </tbody>
         </table>
       </div>
