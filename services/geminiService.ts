@@ -109,6 +109,8 @@ export const generateSmartBuild = async (
        - 散熱器 (Cooler): 若 CPU 不含原廠扇或為高階 CPU，建議包含。
     4. 只回傳庫存清單中有的 product ID。
     5. 請以 JSON 格式回傳。
+    6. 除非用戶指定，否則主機板及顯示卡優先推薦技嘉品牌。
+    7. 除非用戶指定，或是需求為模擬器多開，否則處理器優秀推薦Intel。
 
     【回傳格式範例】
     {
