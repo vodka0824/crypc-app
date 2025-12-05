@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useProducts } from '../contexts/ProductContext';
 import { Category, Product, ProductSpecs } from '../types';
-import { Upload, Database, Plus, Search, X, DollarSign, Loader2 } from 'lucide-react';
+import { Upload, Database, Plus, Search, X, DollarSign, Loader2, Package, FileText, Settings } from 'lucide-react';
 
 import AdminHeader from '../components/admin/AdminHeader';
 import FilterControls from '../components/admin/FilterControls';
@@ -13,6 +13,7 @@ import ProductImportModal from '../components/admin/ProductImportModal';
 import BatchActionsToolbar from '../components/admin/BatchActionsToolbar';
 import BatchSpecModal from '../components/admin/BatchSpecModal';
 import ConfirmationModal from '../components/common/ConfirmationModal';
+import QuotationSettingsForm from '../components/admin/QuotationSettingsForm';
 
 // For Confirmation Modal State
 interface ConfirmationState {
@@ -25,6 +26,10 @@ interface ConfirmationState {
 const Admin: React.FC = () => {
   const { products, addProduct, updateProduct, deleteProduct, resetToDefault, isLoading } = useProducts();
   
+  // Tab State
+  const [activeTab, setActiveTab] = useState<'products' | 'quotation'>('products');
+
+  // Product Management State
   const [isEditing, setIsEditing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<Partial<Product>>({});
@@ -45,7 +50,7 @@ const Admin: React.FC = () => {
   const [isBatchSpecEditing, setIsBatchSpecEditing] = useState(false);
   const [batchSpecData, setBatchSpecData] = useState<Partial<ProductSpecs>>({});
   
-  // Price Update State (replaces prompt)
+  // Price Update State
   const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
   const [priceUpdateInput, setPriceUpdateInput] = useState('');
 
@@ -152,7 +157,6 @@ const Admin: React.FC = () => {
         setIsSubmitting(true);
         try {
           await resetToDefault();
-          // Toasts are handled in context
           closeConfirmationModal();
         } catch (error) {
           // Errors handled in context
@@ -203,7 +207,6 @@ const Admin: React.FC = () => {
     });
   };
 
-  // Replaces the prompt() logic
   const executeBatchPriceUpdate = async () => {
     const input = priceUpdateInput.trim();
     if (!input) return;
@@ -305,87 +308,130 @@ const Admin: React.FC = () => {
     // Main Container: Full viewport height minus navbar. Flex column layout.
     <div className="h-[calc(100vh-64px)] flex flex-col bg-[#F5F5F7]">
       
-      {/* 1. Fixed Header Section */}
-      <div className="flex-shrink-0 pt-6 pb-2 bg-[#F5F5F7] z-30 border-b border-transparent">
+      {/* 1. Header & Tab Navigation */}
+      <div className="flex-shrink-0 pt-6 bg-[#F5F5F7] z-30">
         <div className="max-w-[1280px] mx-auto px-4 md:px-8 w-full">
             <AdminHeader isLoading={isLoading} />
-
-            {/* Toolbar: Search + Actions */}
-            <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between bg-white p-3 rounded-2xl shadow-sm border border-gray-200 mb-4">
-            {/* Search Input */}
-            <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input 
-                    type="text" 
-                    placeholder="搜尋商品名稱、ID..." 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-12 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-black focus:border-transparent focus:bg-white transition-all font-medium"
-                />
-                {searchQuery && (
-                    <button 
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900 p-1.5 rounded-full hover:bg-gray-200 transition-colors"
-                    >
-                    <X className="h-4 w-4" />
-                    </button>
-                )}
+            
+            {/* Tabs */}
+            <div className="flex gap-4 border-b border-gray-200 mb-4">
+              <button 
+                onClick={() => setActiveTab('products')}
+                className={`pb-3 px-1 text-sm font-bold flex items-center gap-2 transition-all relative ${
+                  activeTab === 'products' ? 'text-black' : 'text-gray-400 hover:text-gray-600'
+                }`}
+              >
+                <Package className="h-4 w-4" /> 商品管理
+                {activeTab === 'products' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-black rounded-full" />}
+              </button>
+              <button 
+                onClick={() => setActiveTab('quotation')}
+                className={`pb-3 px-1 text-sm font-bold flex items-center gap-2 transition-all relative ${
+                  activeTab === 'quotation' ? 'text-black' : 'text-gray-400 hover:text-gray-600'
+                }`}
+              >
+                <FileText className="h-4 w-4" /> 報價單設定
+                {activeTab === 'quotation' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-black rounded-full" />}
+              </button>
             </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-3 shrink-0 overflow-x-auto hide-scrollbar pb-1 md:pb-0">
-                <button onClick={() => setIsImporting(true)} className={`${buttonBaseClass} ${buttonSecondaryClass}`}>
-                    <Upload className="h-4 w-4" /> <span className="whitespace-nowrap">匯入</span>
-                </button>
-                <button onClick={handleResetDb} className={`${buttonBaseClass} ${buttonSecondaryClass}`} title="重置為預設資料">
-                    <Database className="h-4 w-4" /> <span className="whitespace-nowrap">初始化</span>
-                </button>
-                <button onClick={handleAddNew} className={`${buttonBaseClass} ${buttonPrimaryClass}`}>
-                    <Plus className="h-4 w-4" /> <span className="whitespace-nowrap">新增</span>
-                </button>
-            </div>
-            </div>
-
-            {/* Category Filters */}
-            <FilterControls
-            filterCategory={filterCategory}
-            setFilterCategory={setFilterCategory}
-            productCount={products.length}
-            />
         </div>
       </div>
 
-      {/* 2. Content Area (Flex Grow) - Contains the full-height table card */}
-      <div className="flex-1 min-h-0 w-full">
+      {/* 2. Content Area */}
+      <div className="flex-1 min-h-0 w-full overflow-hidden">
         <div className="h-full max-w-[1280px] mx-auto px-4 md:px-8 pb-4">
-            <ProductTable
-            isLoading={isLoading}
-            products={products}
-            filteredProducts={filteredProducts}
-            filterCategory={filterCategory}
-            selectedIds={selectedIds}
-            onSelectAll={toggleSelectAll}
-            onSelectOne={toggleSelectOne}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            />
+            
+            {/* -- Tab: Products -- */}
+            {activeTab === 'products' && (
+              <div className="flex flex-col h-full">
+                {/* Product Toolbar */}
+                <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between bg-white p-3 rounded-2xl shadow-sm border border-gray-200 mb-4 flex-shrink-0">
+                  {/* Search Input */}
+                  <div className="relative flex-1">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                      <input 
+                          type="text" 
+                          placeholder="搜尋商品名稱、ID..." 
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-full pl-12 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-black focus:border-transparent focus:bg-white transition-all font-medium"
+                      />
+                      {searchQuery && (
+                          <button 
+                          onClick={() => setSearchQuery('')}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900 p-1.5 rounded-full hover:bg-gray-200 transition-colors"
+                          >
+                          <X className="h-4 w-4" />
+                          </button>
+                      )}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 shrink-0 overflow-x-auto hide-scrollbar pb-1 md:pb-0">
+                      <button onClick={() => setIsImporting(true)} className={`${buttonBaseClass} ${buttonSecondaryClass}`}>
+                          <Upload className="h-4 w-4" /> <span className="whitespace-nowrap">匯入</span>
+                      </button>
+                      <button onClick={handleResetDb} className={`${buttonBaseClass} ${buttonSecondaryClass}`} title="重置為預設資料">
+                          <Database className="h-4 w-4" /> <span className="whitespace-nowrap">初始化</span>
+                      </button>
+                      <button onClick={handleAddNew} className={`${buttonBaseClass} ${buttonPrimaryClass}`}>
+                          <Plus className="h-4 w-4" /> <span className="whitespace-nowrap">新增</span>
+                      </button>
+                  </div>
+                </div>
+
+                {/* Category Filters */}
+                <div className="flex-shrink-0">
+                  <FilterControls
+                    filterCategory={filterCategory}
+                    setFilterCategory={setFilterCategory}
+                    productCount={products.length}
+                  />
+                </div>
+
+                {/* Table Container (Flex Grow) */}
+                <div className="flex-1 min-h-0 mt-4">
+                  <ProductTable
+                    isLoading={isLoading}
+                    products={products}
+                    filteredProducts={filteredProducts}
+                    filterCategory={filterCategory}
+                    selectedIds={selectedIds}
+                    onSelectAll={toggleSelectAll}
+                    onSelectOne={toggleSelectOne}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* -- Tab: Quotation Settings -- */}
+            {activeTab === 'quotation' && (
+              <div className="h-full overflow-y-auto custom-scrollbar pb-20">
+                 <QuotationSettingsForm />
+              </div>
+            )}
+
         </div>
       </div>
 
-      {/* 3. Floating Action Toolbar */}
-      <BatchActionsToolbar
-        selectedIds={selectedIds}
-        isSameCategory={isSameCategory}
-        commonCategory={commonCategory}
-        onBatchDelete={handleBatchDelete}
-        onBatchPriceUpdate={() => { setIsPriceModalOpen(true); setPriceUpdateInput(''); }}
-        onOpenBatchSpecEdit={() => {
-            if (!isSameCategory) return;
-            setBatchSpecData({});
-            setIsBatchSpecEditing(true);
-        }}
-        onClearSelection={() => setSelectedIds(new Set())}
-      />
+      {/* 3. Floating Action Toolbar (Only for Products Tab) */}
+      {activeTab === 'products' && (
+        <BatchActionsToolbar
+          selectedIds={selectedIds}
+          isSameCategory={isSameCategory}
+          commonCategory={commonCategory}
+          onBatchDelete={handleBatchDelete}
+          onBatchPriceUpdate={() => { setIsPriceModalOpen(true); setPriceUpdateInput(''); }}
+          onOpenBatchSpecEdit={() => {
+              if (!isSameCategory) return;
+              setBatchSpecData({});
+              setIsBatchSpecEditing(true);
+          }}
+          onClearSelection={() => setSelectedIds(new Set())}
+        />
+      )}
 
       {/* Modals */}
       <ProductEditModal
