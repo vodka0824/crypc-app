@@ -494,7 +494,12 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                             {items.map((item) => {
                                 const errorMsg = checkCompatibility(item, build);
                                 return (
-                                    <div key={item.uniqueId} className="flex flex-col md:flex-row md:items-center px-3 py-3 md:px-4 border-b border-gray-50 last:border-0 hover:bg-gray-50/80 transition-all relative group/item">
+                                    <div 
+                                      key={item.uniqueId} 
+                                      onClick={() => handleStartReplace(item)}
+                                      className="flex flex-col md:flex-row md:items-center px-3 py-3 md:px-4 border-b border-gray-50 last:border-0 hover:bg-gray-50/80 transition-all relative group/item cursor-pointer"
+                                      title="點擊更換商品"
+                                    >
                                         
                                         <div className="flex-1 min-w-0 pr-8 md:pr-0">
                                             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -510,13 +515,13 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                                             <div className="font-bold text-base md:text-xl text-gray-900 tabular-nums min-w-[80px] text-right">${item.price.toLocaleString()}</div>
                                             <div className="flex items-center gap-2">
                                                 <div className="hidden md:flex items-center bg-gray-50 border border-gray-200 rounded-lg h-9">
-                                                    <button onClick={() => handleQuantityChange(item.id, -1)} className="w-8 hover:bg-gray-200 h-full rounded-l-lg text-gray-600 flex items-center justify-center" disabled={item.quantity <= 1}><Minus className="h-3 w-3" /></button>
+                                                    <button onClick={(e) => { e.stopPropagation(); handleQuantityChange(item.id, -1); }} className="w-8 hover:bg-gray-200 h-full rounded-l-lg text-gray-600 flex items-center justify-center" disabled={item.quantity <= 1}><Minus className="h-3 w-3" /></button>
                                                     <span className="w-8 text-center text-sm font-bold text-black">{item.quantity}</span>
-                                                    <button onClick={() => handleQuantityChange(item.id, 1)} className="w-8 hover:bg-gray-200 h-full rounded-r-lg text-gray-600 flex items-center justify-center"><Plus className="h-3 w-3" /></button>
+                                                    <button onClick={(e) => { e.stopPropagation(); handleQuantityChange(item.id, 1); }} className="w-8 hover:bg-gray-200 h-full rounded-r-lg text-gray-600 flex items-center justify-center"><Plus className="h-3 w-3" /></button>
                                                 </div>
-                                                <button onClick={() => setQtySelectorId(item.id)} className="md:hidden flex items-center justify-center gap-1 bg-gray-50 border border-gray-200 rounded-lg h-8 px-3 text-sm font-bold text-black shadow-sm active:scale-95">x{item.quantity} <ChevronDown className="h-3 w-3 opacity-50 ml-1" /></button>
-                                                <button onClick={() => handleStartReplace(item)} className="p-2 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors" title="更換商品"><RefreshCw className="h-5 w-5" /></button>
-                                                <button onClick={() => handleRemoveProduct(item.id)} className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"><Trash2 className="h-5 w-5" /></button>
+                                                <button onClick={(e) => { e.stopPropagation(); setQtySelectorId(item.id); }} className="md:hidden flex items-center justify-center gap-1 bg-gray-50 border border-gray-200 rounded-lg h-8 px-3 text-sm font-bold text-black shadow-sm active:scale-95">x{item.quantity} <ChevronDown className="h-3 w-3 opacity-50 ml-1" /></button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleStartReplace(item); }} className="p-2 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors" title="更換商品"><RefreshCw className="h-5 w-5" /></button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleRemoveProduct(item.id); }} className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"><Trash2 className="h-5 w-5" /></button>
                                             </div>
                                         </div>
                                     </div>
