@@ -1,15 +1,15 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { Category, Product, BuildState, BuilderItem, ProductSpecs, BuildTemplate, CartItem } from '../types';
-import { Plus, Check, RotateCcw, X, ChevronDown, ChevronRight, Cpu, Minus, Trash2, AlertTriangle, SlidersHorizontal, ListFilter, Eraser, Monitor, Disc, Save, FolderOpen, Search, RefreshCw, Sparkles, Loader2, Bot, Share2, Copy, StickyNote, Box, Fan, Wind, Zap, ShoppingCart, CircuitBoard, HardDrive, Gamepad2, Droplets, Mouse, MemoryStick, Clock, ArrowRight, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { Plus, Check, RotateCcw, X, ChevronDown, ChevronRight, Cpu, Minus, Trash2, AlertTriangle, SlidersHorizontal, ListFilter, Eraser, Monitor, Disc, Save, FolderOpen, Search, RefreshCw, Sparkles, Loader2, Bot, Share2, Copy, StickyNote, Box, Fan, Wind, Zap, ShoppingCart, CreditCard, Banknote, CircuitBoard, HardDrive, Gamepad2, Droplets, Mouse, MemoryStick, Clock, ArrowRight, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { categoryFilters, categoryDisplayMap } from '../data/mockData';
 import { useProducts } from '../contexts/ProductContext';
 import { generateSmartBuild } from '../services/geminiService';
-import ConfirmationModal from '../components/common/ConfirmationModal';
 import toast from 'react-hot-toast';
-import InstallmentCalculator from '../components/builder/InstallmentCalculator';
+import ConfirmationModal from '../components/common/ConfirmationModal';
 import { parseWattage, checkCompatibility } from '../utils/builderLogic';
 
+// Slot definition for UI iteration
 const buildSlots = [
   { category: Category.CPU, icon: Cpu, label: 'CPU 處理器' },
   { category: Category.MB, icon: CircuitBoard, label: '主機板' },
@@ -31,6 +31,113 @@ const usagePresets = [
     { label: '影音創作', value: '影片剪輯、3D 建模渲染、圖形設計' },
     { label: '程式開發', value: '軟體開發、虛擬機運行、多工處理' }
 ];
+
+// --- Installment Logic Helper ---
+const InstallmentCalculator = ({ totalPrice }: { totalPrice: number }) => {
+    const [mode, setMode] = useState<'credit' | 'cardless'>('credit');
+
+    if (totalPrice === 0) return null;
+
+    // Excel Formula Logic Implementation
+    const calculateCreditCard = (price: number, periods: number, rateHigh: number, rateLow: number) => {
+        // Condition: IF(E1*2.49%>498, ...)
+        const thresholdCheck = (price * 0.0249) > 498;
+        
+        let total = 0;
+        if (thresholdCheck) {
+            // E1 * rateHigh + 498
+            total = price * rateHigh + 498;
+        } else {
+            // E1 * rateLow
+            total = price * rateLow;
+        }
+        
+        // Round to integer for display
+        total = Math.round(total);
+        const monthly = Math.round(total / periods);
+        
+        return { total, monthly };
+    };
+
+    const calculateCardless = (price: number, periods: number, factor: number) => {
+        // Formula: ROUNDUP(ROUNDUP(E1/Factor, 0)/Periods, 0) -> Monthly
+        // Note: JS Math.ceil is equivalent to Excel ROUNDUP(x, 0)
+        const step1 = Math.ceil(price / factor);
+        const monthly = Math.ceil(step1 / periods);
+        const total = monthly * periods;
+        
+        return { total, monthly };
+    };
+
+    const creditRows = [
+        { periods: 3, ...calculateCreditCard(totalPrice, 3, 1.03, 1.0549) },
+        { periods: 6, ...calculateCreditCard(totalPrice, 6, 1.035, 1.0599) },
+        { periods: 12, ...calculateCreditCard(totalPrice, 12, 1.06, 1.0849) },
+        { periods: 24, ...calculateCreditCard(totalPrice, 24, 1.06, 1.0849) }, // Formula in image matches 12 periods
+    ];
+
+    const cardlessRows = [
+        { periods: 6, ...calculateCardless(totalPrice, 6, 0.9551) },
+        { periods: 9, ...calculateCardless(totalPrice, 9, 0.9391) },
+        { periods: 12, ...calculateCardless(totalPrice, 12, 0.92218) },
+        { periods: 15, ...calculateCardless(totalPrice, 15, 0.905) },
+        { periods: 18, ...calculateCardless(totalPrice, 18, 0.885) },
+        { periods: 21, ...calculateCardless(totalPrice, 21, 0.8735) },
+        { periods: 24, ...calculateCardless(totalPrice, 24, 0.8624) },
+        { periods: 30, ...calculateCardless(totalPrice, 30, 0.83333) },
+    ];
+
+    const activeRows = mode === 'credit' ? creditRows : cardlessRows;
+
+    return (
+        <div className="mt-4 border-t border-gray-200 pt-4">
+            <div className="flex bg-gray-100 p-1 rounded-xl mb-3">
+                <button 
+                    onClick={() => setMode('credit')}
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all ${mode === 'credit' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-black'}`}
+                >
+                    <CreditCard className="h-3.5 w-3.5" /> 刷卡分期
+                </button>
+                <button 
+                    onClick={() => setMode('cardless')}
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all ${mode === 'cardless' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-black'}`}
+                >
+                    <Banknote className="h-3.5 w-3.5" /> 無卡分期
+                </button>
+            </div>
+
+            <div className="overflow-hidden rounded-xl border border-gray-200">
+                <table className="w-full text-sm">
+                    <thead className="bg-gray-50 text-gray-500 font-medium text-xs uppercase">
+                        <tr>
+                            <th className="py-2 pl-4 text-left">期數</th>
+                            <th className="py-2 text-right">每期金額</th>
+                            <th className="py-2 pr-4 text-right text-gray-400">總價</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                        {activeRows.map((row) => (
+                            <tr key={row.periods} className="group hover:bg-gray-50 transition-colors">
+                                <td className="py-2.5 pl-4 font-bold text-gray-700">
+                                    {row.periods} 期
+                                </td>
+                                <td className="py-2.5 text-right font-bold text-black font-mono text-base">
+                                    ${row.monthly.toLocaleString()}
+                                </td>
+                                <td className="py-2.5 pr-4 text-right text-gray-400 text-xs font-mono">
+                                    ${row.total.toLocaleString()}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+            <p className="text-[10px] text-gray-400 mt-2 text-center">
+                * 試算金額僅供參考，實際分期利率與總額以{mode === 'credit' ? '銀行' : '審核'}結果為準。
+            </p>
+        </div>
+    );
+};
 
 interface BuilderProps {
   cartItems: CartItem[];
@@ -179,13 +286,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
             newCart[existingIndex] = {
                 ...newCart[existingIndex],
                 quantity: replacingItemId ? quantityToAdd : newCart[existingIndex].quantity + quantityToAdd 
-                // Note: If adding (not replacing), we usually append qty. If replacing, we might want to set exact qty or just add.
-                // However, the UI flow for 'Update Qty' implies setting the absolute value.
-                // For simplicity in this specialized list view:
-                // If Item Exists -> Update to new Qty.
-                // If Item New -> Add.
             };
-            // Correct logic for "Update" button behavior:
             newCart[existingIndex].quantity = quantityToAdd;
         } else {
             newCart.push({ ...product, quantity: quantityToAdd });
@@ -770,9 +871,9 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                          <div className="lg:hidden p-4 border-b border-gray-100 flex-shrink-0"><button onClick={() => setMobileFiltersOpen(true)} className="w-full flex items-center justify-center gap-2 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-bold text-sm"><SlidersHorizontal className="h-4 w-4" /> 篩選條件 {Object.keys(activeFilters).length > 0 && `(${Object.keys(activeFilters).length})`}</button></div>
                          
                          {/* Header Row for Name/Price Sorting */}
-                         <div className="px-6 py-3 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center text-sm sticky top-0 z-20 backdrop-blur-sm">
+                         <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center text-sm sticky top-0 z-20 backdrop-blur-sm">
                             <div 
-                                className="font-bold text-gray-600 hover:text-black cursor-pointer flex items-center gap-1 transition-colors select-none group"
+                                className="flex-1 font-bold text-gray-600 hover:text-black cursor-pointer flex items-center gap-1 transition-colors select-none group"
                                 onClick={() => setModalSort(prev => {
                                     if (prev === 'name-asc') return 'name-desc';
                                     if (prev === 'name-desc') return 'default';
@@ -784,18 +885,22 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                                 {modalSort === 'name-desc' && <ArrowDown className="h-3.5 w-3.5 text-black" />}
                                 {modalSort !== 'name-asc' && modalSort !== 'name-desc' && <ArrowUpDown className="h-3.5 w-3.5 text-gray-400 group-hover:text-gray-600" />}
                             </div>
-                            <div 
-                                className="font-bold text-gray-600 hover:text-black cursor-pointer flex items-center gap-1 transition-colors select-none group"
-                                onClick={() => setModalSort(prev => {
-                                    if (prev === 'price-asc') return 'price-desc';
-                                    if (prev === 'price-desc') return 'default';
-                                    return 'price-asc';
-                                })}
-                            >
-                                金額
-                                {modalSort === 'price-asc' && <ArrowUp className="h-3.5 w-3.5 text-black" />}
-                                {modalSort === 'price-desc' && <ArrowDown className="h-3.5 w-3.5 text-black" />}
-                                {modalSort !== 'price-asc' && modalSort !== 'price-desc' && <ArrowUpDown className="h-3.5 w-3.5 text-gray-400 group-hover:text-gray-600" />}
+                            
+                            <div className="flex items-center gap-4">
+                                <div 
+                                    className="font-bold text-gray-600 hover:text-black cursor-pointer flex items-center justify-end gap-1 transition-colors select-none group min-w-[80px]"
+                                    onClick={() => setModalSort(prev => {
+                                        if (prev === 'price-asc') return 'price-desc';
+                                        if (prev === 'price-desc') return 'default';
+                                        return 'price-asc';
+                                    })}
+                                >
+                                    金額
+                                    {modalSort === 'price-asc' && <ArrowUp className="h-3.5 w-3.5 text-black" />}
+                                    {modalSort === 'price-desc' && <ArrowDown className="h-3.5 w-3.5 text-black" />}
+                                    {modalSort !== 'price-asc' && modalSort !== 'price-desc' && <ArrowUpDown className="h-3.5 w-3.5 text-gray-400 group-hover:text-gray-600" />}
+                                </div>
+                                <div className="w-[12rem] hidden md:block"></div> 
                             </div>
                          </div>
 
