@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { Category, Product, BuildState, BuilderItem, ProductSpecs, BuildTemplate, CartItem } from '../types';
-import { Plus, Check, RotateCcw, X, ChevronDown, ChevronRight, Cpu, Minus, Trash2, AlertTriangle, SlidersHorizontal, ListFilter, Eraser, Monitor, Disc, Save, FolderOpen, Search, RefreshCw, Sparkles, Loader2, Bot, Share2, Copy, StickyNote, Box, Fan, Wind, Zap, ShoppingCart, CircuitBoard, HardDrive, Gamepad2, Droplets, Mouse, MemoryStick, Clock } from 'lucide-react';
+import { Plus, Check, RotateCcw, X, ChevronDown, ChevronRight, Cpu, Minus, Trash2, AlertTriangle, SlidersHorizontal, ListFilter, Eraser, Monitor, Disc, Save, FolderOpen, Search, RefreshCw, Sparkles, Loader2, Bot, Share2, Copy, StickyNote, Box, Fan, Wind, Zap, ShoppingCart, CircuitBoard, HardDrive, Gamepad2, Droplets, Mouse, MemoryStick, Clock, ArrowRight } from 'lucide-react';
 import { categoryFilters, categoryDisplayMap } from '../data/mockData';
 import { useProducts } from '../contexts/ProductContext';
 import { generateSmartBuild } from '../services/geminiService';
@@ -178,14 +178,21 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
         if (existingIndex >= 0) {
             newCart[existingIndex] = {
                 ...newCart[existingIndex],
-                quantity: newCart[existingIndex].quantity + quantityToAdd
+                quantity: replacingItemId ? quantityToAdd : newCart[existingIndex].quantity + quantityToAdd 
+                // Note: If adding (not replacing), we usually append qty. If replacing, we might want to set exact qty or just add.
+                // However, the UI flow for 'Update Qty' implies setting the absolute value.
+                // For simplicity in this specialized list view:
+                // If Item Exists -> Update to new Qty.
+                // If Item New -> Add.
             };
+            // Correct logic for "Update" button behavior:
+            newCart[existingIndex].quantity = quantityToAdd;
         } else {
             newCart.push({ ...product, quantity: quantityToAdd });
         }
         return newCart;
     });
-    setRowQuantities(prev => ({ ...prev, [product.id]: 1 }));
+    setRowQuantities(prev => ({ ...prev, [product.id]: quantityToAdd }));
     if (replacingItemId) {
         setReplacingItemId(null);
         setIsModalOpen(false);
@@ -761,38 +768,89 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                     <div className="flex-1 flex flex-col min-w-0 bg-white relative">
                          <div className="lg:hidden p-4 border-b border-gray-100 flex-shrink-0"><button onClick={() => setMobileFiltersOpen(true)} className="w-full flex items-center justify-center gap-2 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-bold text-sm"><SlidersHorizontal className="h-4 w-4" /> 篩選條件 {Object.keys(activeFilters).length > 0 && `(${Object.keys(activeFilters).length})`}</button></div>
                          <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
-                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-12">
+                             {/* Changed from Grid to List Layout */}
+                             <div className="flex flex-col gap-3 pb-12">
                                  {filteredModalProducts.length === 0 ? (
-                                     <div className="col-span-full py-20 text-center text-gray-400"><Search className="h-16 w-16 mx-auto mb-4 opacity-20" /><p className="text-lg font-medium">沒有符合條件的商品</p><button onClick={() => { setActiveFilters({}); setSearchQuery(''); }} className="mt-2 text-blue-600 font-bold hover:underline">清除所有篩選</button></div>
+                                     <div className="py-20 text-center text-gray-400"><Search className="h-16 w-16 mx-auto mb-4 opacity-20" /><p className="text-lg font-medium">沒有符合條件的商品</p><button onClick={() => { setActiveFilters({}); setSearchQuery(''); }} className="mt-2 text-blue-600 font-bold hover:underline">清除所有篩選</button></div>
                                  ) : (
                                      filteredModalProducts.map(product => {
-                                         const currentQty = rowQuantities[product.id] || 1;
+                                         // Check cart status
+                                         const cartItem = cartItems.find(i => i.id === product.id);
+                                         const qtyInCart = cartItem ? cartItem.quantity : 0;
+                                         
+                                         // If user hasn't touched the local quantity yet, default to what's in cart (if any), else 1
+                                         const currentQty = rowQuantities[product.id] || (qtyInCart > 0 ? qtyInCart : 1);
+                                         const isSelected = qtyInCart > 0;
+
                                          return (
-                                             <div key={product.id} className="group border border-gray-100 rounded-2xl p-4 hover:shadow-lg hover:border-gray-200 transition-all flex flex-col bg-white">
-                                                 <div className="flex gap-4 mb-3">
-                                                     <div className="w-16 h-16 bg-gray-50 rounded-xl flex-shrink-0 flex items-center justify-center p-1 border border-gray-100 overflow-hidden relative">
-                                                         <div className="absolute inset-0 flex items-center justify-center"><Box className="h-8 w-8 text-gray-300" /></div>
-                                                         {product.image && (
-                                                             <img 
-                                                                src={product.image} 
-                                                                className="w-full h-full object-contain mix-blend-multiply relative z-10" 
-                                                                alt="" 
-                                                                loading="lazy" 
-                                                                onError={(e) => e.currentTarget.style.display = 'none'} 
-                                                             />
+                                             <div key={product.id} className={`group border rounded-xl p-4 transition-all flex flex-col md:flex-row items-start md:items-center gap-4 bg-white ${isSelected ? 'border-blue-500 bg-blue-50/30' : 'border-gray-100 hover:border-gray-300 hover:shadow-md'}`}>
+                                                 
+                                                 {/* Product Info (No Image) */}
+                                                 <div className="flex-1 min-w-0">
+                                                     <div className="flex flex-wrap items-center gap-2 mb-1">
+                                                         <h4 className="font-bold text-gray-900 text-base leading-tight">{product.name}</h4>
+                                                         {isSelected && (
+                                                             <span className="inline-flex items-center gap-1 bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
+                                                                 <Check className="h-3 w-3" /> 已加入 x{qtyInCart}
+                                                             </span>
                                                          )}
                                                      </div>
-                                                     <div className="min-w-0 flex-1">
-                                                         <div className="flex justify-between items-start"><h4 className="font-bold text-gray-900 leading-tight line-clamp-2 text-sm mb-1" title={product.name}>{product.name}</h4></div>
-                                                         <div className="text-xs text-gray-500 line-clamp-1 mb-2">{product.description}</div>
-                                                         <div className="flex flex-wrap gap-1">{product.specDetails && Object.entries(product.specDetails).filter(([k]) => k !== 'brand').slice(0, 3).map(([k, v]) => (<span key={k} className="text-[10px] bg-gray-50 text-gray-500 px-1.5 py-0.5 rounded border border-gray-100">{v}</span>))}</div>
+                                                     <div className="text-xs text-gray-500 mb-2 line-clamp-1">{product.description}</div>
+                                                     <div className="flex flex-wrap gap-1">
+                                                         {product.specDetails && Object.entries(product.specDetails)
+                                                             .filter(([k]) => k !== 'brand')
+                                                             .slice(0, 4).map(([k, v]) => (
+                                                             <span key={k} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded border border-gray-200">
+                                                                 <span className="opacity-50 mr-1">{k}:</span>{v}
+                                                             </span>
+                                                         ))}
                                                      </div>
                                                  </div>
-                                                 <div className="mt-auto pt-3 border-t border-gray-50 flex items-center justify-between gap-3">
-                                                     <div className="font-bold text-lg text-black tabular-nums">${product.price.toLocaleString()}</div>
+
+                                                 {/* Price & Actions */}
+                                                 <div className="flex items-center justify-between w-full md:w-auto md:justify-end gap-4 mt-2 md:mt-0 border-t md:border-t-0 border-gray-100 pt-3 md:pt-0">
+                                                     <div className="font-bold text-lg text-black tabular-nums whitespace-nowrap">
+                                                         ${product.price.toLocaleString()}
+                                                     </div>
+                                                     
                                                      <div className="flex items-center gap-2">
-                                                         <div className="flex items-center bg-gray-50 rounded-lg h-9 border border-gray-200"><button onClick={(e) => { e.stopPropagation(); setRowQuantities(prev => ({ ...prev, [product.id]: Math.max(1, (prev[product.id] || 1) - 1) })); }} className="w-8 h-full flex items-center justify-center hover:bg-gray-200 rounded-l-lg text-gray-600"><Minus className="h-3 w-3" /></button><span className="w-8 text-center text-sm font-bold text-black">{currentQty}</span><button onClick={(e) => { e.stopPropagation(); setRowQuantities(prev => ({ ...prev, [product.id]: (prev[product.id] || 1) + 1 })); }} className="w-8 h-full flex items-center justify-center hover:bg-gray-200 rounded-r-lg text-gray-600"><Plus className="h-3 w-3" /></button></div>
-                                                         <button onClick={() => handleSelectProduct(product, currentQty)} className={`h-9 px-4 rounded-lg font-bold text-sm shadow-sm transition-transform active:scale-95 flex items-center gap-1.5 ${replacingItemId ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-black text-white hover:bg-gray-800'}`}>{replacingItemId ? <RefreshCw className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}{replacingItemId ? '更換' : '加入'}</button>
+                                                         {/* Qty Control */}
+                                                         <div className={`flex items-center rounded-lg h-9 border ${isSelected ? 'bg-white border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
+                                                             <button 
+                                                                 onClick={(e) => { e.stopPropagation(); setRowQuantities(prev => ({ ...prev, [product.id]: Math.max(1, currentQty - 1) })); }}
+                                                                 className="w-8 h-full flex items-center justify-center hover:bg-gray-100 rounded-l-lg text-gray-600"
+                                                             >
+                                                                 <Minus className="h-3 w-3" />
+                                                             </button>
+                                                             <span className="w-8 text-center text-sm font-bold text-black">{currentQty}</span>
+                                                             <button 
+                                                                 onClick={(e) => { e.stopPropagation(); setRowQuantities(prev => ({ ...prev, [product.id]: currentQty + 1 })); }}
+                                                                 className="w-8 h-full flex items-center justify-center hover:bg-gray-100 rounded-r-lg text-gray-600"
+                                                             >
+                                                                 <Plus className="h-3 w-3" />
+                                                             </button>
+                                                         </div>
+
+                                                         {/* Action Button */}
+                                                         <button 
+                                                             onClick={() => handleSelectProduct(product, currentQty)}
+                                                             className={`h-9 px-4 rounded-lg font-bold text-sm shadow-sm transition-all active:scale-95 flex items-center gap-1.5 whitespace-nowrap ${
+                                                                 replacingItemId 
+                                                                    ? 'bg-orange-500 text-white hover:bg-orange-600'
+                                                                    : isSelected 
+                                                                        ? (currentQty !== qtyInCart ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-100 text-gray-400 cursor-default')
+                                                                        : 'bg-black text-white hover:bg-gray-800'
+                                                             }`}
+                                                             disabled={!replacingItemId && isSelected && currentQty === qtyInCart}
+                                                         >
+                                                             {replacingItemId ? (
+                                                                 <><RefreshCw className="h-3.5 w-3.5" /> 更換</>
+                                                             ) : isSelected ? (
+                                                                 currentQty !== qtyInCart ? '更新數量' : '已在清單'
+                                                             ) : (
+                                                                 <><Plus className="h-3.5 w-3.5" /> 加入</>
+                                                             )}
+                                                         </button>
                                                      </div>
                                                  </div>
                                              </div>
