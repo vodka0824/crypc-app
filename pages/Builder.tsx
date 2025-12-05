@@ -749,92 +749,109 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
       )}
 
       {isAiModalOpen && (
-        <div className="fixed inset-0 z-[75] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={() => setIsAiModalOpen(false)} />
-            <div className="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl p-8 animate-fade-in border border-white/20">
-                <div className="flex justify-between items-start mb-6">
+        <div className="fixed inset-0 z-[75] flex items-end sm:items-center justify-center p-4 sm:p-6">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-md transition-opacity" onClick={() => setIsAiModalOpen(false)} />
+            
+            <div className="relative bg-white w-full max-w-lg max-h-[85vh] sm:max-h-[90vh] rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col animate-slide-up sm:animate-fade-in overflow-hidden">
+                
+                {/* Header - Fixed */}
+                <div className="flex justify-between items-center px-6 py-5 border-b border-gray-100 bg-white z-10">
                     <div className="flex items-center gap-3">
-                        <div className="p-3 bg-black rounded-xl text-white">
-                             <Bot className="h-6 w-6" />
+                        <div className="p-2.5 bg-black rounded-xl text-white shadow-md shadow-black/20">
+                             <Bot className="h-5 w-5" />
                         </div>
                         <div>
-                             <h2 className="text-2xl font-bold text-gray-900">AI 智能配單</h2>
-                             <p className="text-sm text-gray-500">告訴我需求，剩下的交給我。</p>
+                             <h2 className="text-xl font-bold text-gray-900 leading-tight">AI 智能配單</h2>
+                             {!aiExplanation && <p className="text-xs text-gray-500 font-medium">輸入預算與用途，自動生成清單</p>}
                         </div>
                     </div>
-                    <button onClick={() => setIsAiModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full"><X className="h-6 w-6" /></button>
+                    <button onClick={() => setIsAiModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><X className="h-5 w-5 text-gray-500" /></button>
                 </div>
                 
-                {!aiExplanation ? (
-                    <div className="space-y-6">
-                         <div>
-                             <label className="block text-sm font-bold text-gray-700 mb-2">預算上限 (NT$)</label>
-                             <div className="relative">
-                                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
-                                 <input 
-                                     type="number" 
-                                     value={aiBudget}
-                                     onChange={(e) => setAiBudget(e.target.value)}
-                                     className="w-full pl-8 pr-4 py-4 bg-gray-50 border-transparent focus:bg-white focus:border-black focus:ring-0 rounded-xl font-bold text-lg transition-all"
-                                     placeholder="30000"
+                {/* Content - Scrollable */}
+                <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                    {!aiExplanation ? (
+                        <div className="space-y-6">
+                             <div>
+                                 <label className="block text-sm font-bold text-gray-700 mb-2">預算上限 (NT$)</label>
+                                 <div className="relative group">
+                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold transition-colors group-focus-within:text-black">$</span>
+                                     <input 
+                                         type="number" 
+                                         value={aiBudget}
+                                         onChange={(e) => setAiBudget(e.target.value)}
+                                         className="w-full pl-8 pr-4 py-4 bg-gray-50 border-2 border-transparent focus:bg-white focus:border-black focus:ring-0 rounded-2xl font-bold text-xl transition-all outline-none"
+                                         placeholder="30000"
+                                     />
+                                 </div>
+                             </div>
+                             <div>
+                                 <label className="block text-sm font-bold text-gray-700 mb-2">主要用途</label>
+                                 <div className="grid grid-cols-2 gap-3 mb-3">
+                                     {usagePresets.map(preset => (
+                                         <button
+                                             key={preset.label}
+                                             onClick={() => setAiUsage(preset.value)}
+                                             className={`p-3 text-left rounded-xl border-2 transition-all ${aiUsage === preset.value ? 'border-black bg-black text-white' : 'border-gray-100 bg-white hover:border-gray-300 text-gray-600'}`}
+                                         >
+                                             <div className="font-bold text-xs mb-0.5">{preset.label}</div>
+                                             <div className={`text-[10px] ${aiUsage === preset.value ? 'text-gray-300' : 'text-gray-400'} line-clamp-1`}>{preset.value}</div>
+                                         </button>
+                                     ))}
+                                 </div>
+                                 <textarea 
+                                     value={aiUsage}
+                                     onChange={(e) => setAiUsage(e.target.value)}
+                                     className="w-full p-4 bg-gray-50 border-2 border-transparent focus:bg-white focus:border-black focus:ring-0 rounded-2xl text-sm transition-all resize-none font-medium leading-relaxed outline-none"
+                                     rows={3}
+                                     placeholder="或手動輸入詳細需求..."
                                  />
                              </div>
-                         </div>
-                         <div>
-                             <label className="block text-sm font-bold text-gray-700 mb-2">主要用途</label>
-                             <div className="grid grid-cols-2 gap-3">
-                                 {usagePresets.map(preset => (
-                                     <button
-                                         key={preset.label}
-                                         onClick={() => setAiUsage(preset.value)}
-                                         className={`p-3 text-left rounded-xl border transition-all ${aiUsage === preset.value ? 'border-black bg-black text-white' : 'border-gray-200 hover:border-gray-400'}`}
-                                     >
-                                         <div className="font-bold text-sm mb-1">{preset.label}</div>
-                                         <div className={`text-xs ${aiUsage === preset.value ? 'text-gray-300' : 'text-gray-500'} line-clamp-1`}>{preset.value}</div>
-                                     </button>
-                                 ))}
+                        </div>
+                    ) : (
+                        <div className="space-y-6 animate-fade-in">
+                             <div className="bg-green-50/50 p-5 rounded-2xl border border-green-100">
+                                 <div className="flex items-start gap-4">
+                                     <div className="p-2 bg-green-100 rounded-full text-green-600 flex-shrink-0 mt-0.5">
+                                        <Check className="h-5 w-5" />
+                                     </div>
+                                     <div>
+                                         <h3 className="font-bold text-green-800 text-lg mb-2">配單完成！</h3>
+                                         <div className="text-green-800/80 text-sm leading-7 whitespace-pre-line font-medium">
+                                            {aiExplanation}
+                                         </div>
+                                     </div>
+                                 </div>
                              </div>
-                             <textarea 
-                                 value={aiUsage}
-                                 onChange={(e) => setAiUsage(e.target.value)}
-                                 className="w-full mt-3 p-4 bg-gray-50 border-transparent focus:bg-white focus:border-black focus:ring-0 rounded-xl text-sm transition-all resize-none"
-                                 rows={3}
-                                 placeholder="或手動輸入詳細需求..."
-                             />
-                         </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Footer Actions - Fixed Bottom */}
+                <div className="p-5 border-t border-gray-100 bg-white z-10 flex flex-col gap-3">
+                    {!aiExplanation ? (
                          <button 
                              onClick={handleAiAutoBuild}
                              disabled={isAiLoading || !aiBudget || !aiUsage}
-                             className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                             className="w-full py-4 bg-gradient-to-r from-gray-900 to-black text-white rounded-2xl font-bold text-lg shadow-xl shadow-gray-200 hover:shadow-2xl hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
                          >
                              {isAiLoading ? (
                                  <><Loader2 className="h-5 w-5 animate-spin" /> AI 思考中...</>
                              ) : (
-                                 <><Sparkles className="h-5 w-5" /> 生成配置單</>
+                                 <><Sparkles className="h-5 w-5 text-yellow-300" /> 生成配置單</>
                              )}
                          </button>
-                    </div>
-                ) : (
-                    <div className="space-y-6 animate-fade-in">
-                         <div className="bg-green-50 p-6 rounded-2xl border border-green-100">
-                             <div className="flex items-start gap-3">
-                                 <Check className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
-                                 <div>
-                                     <h3 className="font-bold text-green-800 text-lg mb-2">配單完成！</h3>
-                                     <p className="text-green-700 text-sm leading-relaxed whitespace-pre-line">{aiExplanation}</p>
-                                 </div>
-                             </div>
-                         </div>
-                         <div className="flex gap-4">
-                             <button onClick={() => { setIsAiModalOpen(false); setAiExplanation(''); }} className="flex-1 py-3 border border-gray-200 text-gray-600 rounded-xl font-bold hover:bg-gray-50">
+                    ) : (
+                        <div className="flex gap-3">
+                             <button onClick={() => { setIsAiModalOpen(false); setAiExplanation(''); }} className="flex-1 py-3.5 border-2 border-gray-100 text-gray-600 rounded-2xl font-bold hover:bg-gray-50 hover:text-black hover:border-gray-200 transition-all">
                                  關閉
                              </button>
-                             <button onClick={() => { setAiExplanation(''); }} className="flex-1 py-3 bg-black text-white rounded-xl font-bold hover:bg-gray-800">
+                             <button onClick={() => { setAiExplanation(''); }} className="flex-1 py-3.5 bg-black text-white rounded-2xl font-bold hover:bg-gray-800 transition-all shadow-lg active:scale-95">
                                  再試一次
                              </button>
-                         </div>
-                    </div>
-                )}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
       )}
