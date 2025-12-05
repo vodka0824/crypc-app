@@ -34,18 +34,19 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({ isOpen, onClose
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const csvTemplates: Record<string, string> = {
-    'Generic': `id,name,price,category,description,image\ndemo-001,範例商品名稱,1000,其它,這是一個通用範本的描述,https://example.com/image.jpg`,
+    'Generic': `id,name,price,category,description,brand,image\ndemo-001,範例商品名稱,1000,其它,這是一個通用範本的描述,自有品牌,https://example.com/image.jpg`,
     [Category.CPU]: `id,name,price,category,description,brand,socket,chipset,tdp\ncpu-demo,Intel Core i5-14500,7500,處理器,14核/20緒 2.6GHz,Intel,LGA1700,B760,65W`,
     [Category.MB]: `id,name,price,category,description,brand,socket,chipset,type,memoryType\nmb-demo,ASUS ROG STRIX B760-A,6590,主機板,ATX/Wi-Fi 6E/白化版,ASUS,LGA1700,B760,ATX,DDR5`,
-    [Category.GPU]: `id,name,price,category,description,brand,series,vram,gpuLength,tdp\ngpu-demo,Gigabyte RTX 4070 EAGLE,20990,顯示卡,三風扇/OC版,NVIDIA,RTX 40 Series,12GB,261mm,200W`,
-    [Category.RAM]: `id,name,price,category,description,type,capacity,clock\nram-demo,Kingston Fury Beast 32GB,3200,記憶體,DDR5-6000/CL30/黑,DDR5,32GB,6000`,
-    [Category.SSD]: `id,name,price,category,description,type,capacity\nssd-demo,Samsung 990 PRO 1TB,4500,固態硬碟,讀:7450/寫:6900,M.2 NVMe,1TB`,
+    [Category.GPU]: `id,name,price,category,description,brand,series,vram,gpuLength,tdp\ngpu-demo,Gigabyte RTX 4070 EAGLE,20990,顯示卡,三風扇/OC版,Gigabyte,RTX 40 Series,12GB,261mm,200W`,
+    [Category.RAM]: `id,name,price,category,description,brand,type,capacity,clock\nram-demo,Kingston Fury Beast 32GB,3200,記憶體,DDR5-6000/CL30/黑,Kingston,DDR5,32GB,6000`,
+    [Category.SSD]: `id,name,price,category,description,brand,type,capacity\nssd-demo,Samsung 990 PRO 1TB,4500,固態硬碟,讀:7450/寫:6900,Samsung,M.2 NVMe,1TB`,
     [Category.CASE]: `id,name,price,category,description,brand,type,radiatorSupport,coolerHeight,gpuLength\ncase-demo,Montech Air 903 MAX,2190,機殼,E-ATX/內含四風扇/黑,Montech,ATX,360mm,180mm,400mm`,
     [Category.PSU]: `id,name,price,category,description,brand,wattage,efficiency\npsu-demo,Seasonic Focus GX-850,3990,電源供應器,全模組/十年保,Seasonic,850W,金牌`,
     [Category.COOLER]: `id,name,price,category,description,brand,type,size,features\ncooler-demo,Valkyrie A360,4990,散熱器(水冷),360mm/2.4吋螢幕,Valkyrie,水冷,360mm,LCD螢幕`,
     [Category.AIR_COOLER]: `id,name,price,category,description,brand,coolerHeight,socket\nair-demo,Noctua NH-D15,3690,散熱器(風冷),雙塔雙扇/頂級空冷,Noctua,165mm,"LGA1700, AM5"`,
     [Category.MONITOR]: `id,name,price,category,description,brand,size,resolution,panelType,refreshRate\nmon-demo,ASUS VG27AQ,8800,螢幕,2K/IPS/165Hz/G-Sync,ASUS,27",2K,平面,165Hz`,
     [Category.SOFTWARE]: `id,name,price,category,description,brand,licenseType\nsw-demo,Windows 11 Home,3990,軟體,家用隨機版/64位元,Microsoft,OEM`,
+    [Category.OTHERS]: `id,name,price,category,description,brand\nother-demo,轉接線,150,其它商品,HDMI轉VGA,Unbranded`,
   };
 
   const parseCSV = (text: string): any[] => {
