@@ -650,10 +650,16 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                                             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                                                 <span className="font-bold text-sm md:text-lg text-gray-900 leading-tight">{item.name}</span>
                                                 {(item.category === Category.CPU || item.category === Category.GPU) && item.specDetails?.tdp && <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100 ml-1 whitespace-nowrap">TDP {item.specDetails.tdp}</span>}
-                                                {errorMsg && <span className="flex-shrink-0 inline-flex items-center gap-1 text-[10px] md:text-xs bg-red-50 text-red-600 px-2 py-0.5 rounded border border-red-200"><AlertTriangle className="h-3 w-3" /><span className="hidden md:inline font-medium">{errorMsg}</span></span>}
+                                                {/* Desktop Error Badge */}
+                                                {errorMsg && <span className="hidden md:inline-flex flex-shrink-0 items-center gap-1 text-xs bg-red-50 text-red-600 px-2 py-0.5 rounded border border-red-200"><AlertTriangle className="h-3 w-3" /><span className="font-medium">{errorMsg}</span></span>}
                                             </div>
-                                            {/* Force Single Line Error on Mobile */}
-                                            {errorMsg && <div className="md:hidden text-[10px] text-red-500 mt-1 w-full overflow-hidden text-ellipsis whitespace-nowrap">{errorMsg}</div>}
+                                            {/* Mobile Single Line Error (Icon + Text combined) */}
+                                            {errorMsg && (
+                                                <div className="md:hidden mt-1 flex items-center gap-1 text-[10px] text-red-500 w-full overflow-hidden">
+                                                    <AlertTriangle className="h-3 w-3 flex-shrink-0" />
+                                                    <span className="truncate whitespace-nowrap font-medium">{errorMsg}</span>
+                                                </div>
+                                            )}
                                             <div className="hidden md:block text-sm text-gray-500 mt-1 line-clamp-1">{item.description}</div>
                                         </div>
 
@@ -1102,7 +1108,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                                                                         <button 
                                                                             onClick={(e) => {
                                                                                 e.stopPropagation();
-                                                                                handleSelectProduct(product, qtyInCart + 1);
+                                                                                handleSelectProduct(product, 1); // 修正：點擊加號時增加 1 (在 handleSelectProduct 內會累加)
                                                                             }}
                                                                             className="w-8 h-8 flex items-center justify-center text-gray-600 active:scale-90 transition-transform"
                                                                         >
