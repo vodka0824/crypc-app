@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Category, Product, BuildState, BuilderItem, BuildTemplate, CartItem } from '../types';
-import { Cpu, CircuitBoard, MemoryStick, Gamepad2, HardDrive, Droplets, Wind, Zap, Box, Monitor, Disc, Mouse, Sparkles, Loader2, Bot, Save, FolderOpen, Copy, MoreHorizontal, ClipboardCopy, Trash2, X, Check, Send, Clock } from 'lucide-react';
+import { Cpu, CircuitBoard, MemoryStick, Gamepad2, HardDrive, Droplets, Wind, Zap, Box, Monitor, Disc, Mouse, Sparkles, Loader2, Bot, Save, FolderOpen, Copy, MoreHorizontal, ClipboardCopy, Trash2, X, Check, Send, Clock, ChevronDown, RefreshCw, Plus } from 'lucide-react';
 import { categoryDisplayMap } from '../data/mockData';
 import { useProducts } from '../contexts/ProductContext';
 import { generateSmartBuild } from '../services/geminiService';
