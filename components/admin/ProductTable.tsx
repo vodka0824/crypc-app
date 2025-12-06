@@ -1,9 +1,10 @@
 
 // components/admin/ProductTable.tsx
-import React, { useRef } from 'react';
+import React from 'react';
 import { Category, Product } from '../../types';
 import { categoryDisplayMap, categoryFilters } from '../../data/mockData';
-import { Loader2, Square, CheckSquare, Edit, Trash2, Clock, Image as ImageIcon, Box, MoreVertical } from 'lucide-react';
+import { Loader2, Square, CheckSquare, Edit, Trash2, Clock, Image as ImageIcon, Box } from 'lucide-react';
+// @ts-ignore
 import { FixedSizeList as List, ListChildComponentProps } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 
@@ -49,20 +50,17 @@ const ProductTable: React.FC<ProductTableProps> = ({
   };
 
   // --- Style Helpers ---
-  // We use flex/grid classes to replicate the table layout
   const headerClass = `flex items-center bg-gray-50 border-b border-gray-200 sticky top-0 z-30 shadow-sm ${isCompactMode ? 'py-2' : 'py-3'}`;
   const rowClass = (isSelected: boolean) => `flex items-center border-b border-gray-100 hover:bg-gray-50 transition-colors ${isSelected ? 'bg-blue-50/40' : 'bg-white'} ${isCompactMode ? 'text-xs' : 'text-sm'}`;
   
-  // Column Widths (Fixed logic for consistent virtualization)
+  // Column Widths
   const colCheckbox = "w-12 flex-shrink-0 text-center";
-  const colName = "w-[250px] flex-shrink-0 px-4";
-  const colCat = "w-24 flex-shrink-0 px-4 text-right";
-  const colSpecs = "flex-1 min-w-[300px] px-4 text-right overflow-hidden";
-  const colPrice = "w-28 flex-shrink-0 px-4 text-right";
+  const colName = "w-[250px] flex-shrink-0 px-4 text-left";
+  const colCat = "w-24 flex-shrink-0 px-4 text-center";
+  const colSpecs = "flex-1 min-w-[300px] px-4 text-left overflow-hidden";
+  const colPrice = "w-28 flex-shrink-0 px-4 text-right font-mono"; // Mono for alignment
   const colTime = "w-36 flex-shrink-0 px-4 text-right";
   const colAction = "w-24 flex-shrink-0 px-4 text-right";
-
-  // --- Row Renderers ---
 
   const DesktopRow = ({ index, style }: ListChildComponentProps) => {
     const product = filteredProducts[index];
@@ -93,13 +91,13 @@ const ProductTable: React.FC<ProductTableProps> = ({
 
         {isAllCategories ? (
             <>
-                <div className={`${colCat} flex items-center justify-end`}>
+                <div className={`${colCat} flex items-center justify-center`}>
                     <span className={`inline-block bg-gray-100 text-gray-600 font-bold rounded-md border border-gray-200 whitespace-nowrap ${isCompactMode ? 'px-1.5 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'}`}>
                         {categoryDisplayMap[product.category]}
                     </span>
                 </div>
-                <div className={`${colSpecs} flex items-center justify-end`}>
-                    <div className="flex flex-wrap gap-1 justify-end h-full items-center content-center">
+                <div className={`${colSpecs} flex items-center`}>
+                    <div className="flex flex-wrap gap-1 h-full items-center content-center">
                     {product.specDetails && Object.keys(product.specDetails).length > 0 ? (
                         Object.entries(product.specDetails)
                         .filter(([key]) => key !== 'brand')
@@ -114,9 +112,8 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 </div>
             </>
         ) : (
-            // Category Specific Specs
             dynamicSpecs.slice(0, 4).map(spec => (
-                <div key={spec.key} className="flex-1 px-4 text-right flex items-center justify-end">
+                <div key={spec.key} className="flex-1 px-4 text-center flex items-center justify-center">
                     {product.specDetails?.[spec.key] ? (
                         <span className={`bg-white rounded font-medium text-gray-700 border border-gray-200 whitespace-nowrap ${isCompactMode ? 'px-1.5 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'}`}>
                             {product.specDetails[spec.key]}
@@ -233,7 +230,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 <List
                     height={height - (selectedIds.size > 0 ? 50 : 0)}
                     itemCount={filteredProducts.length}
-                    itemSize={106} // Height of mobile card + margin
+                    itemSize={106} 
                     width={width}
                 >
                     {MobileRow}
@@ -261,10 +258,10 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 </>
             ) : dynamicSpecs.length > 0 ? (
                 dynamicSpecs.slice(0, 4).map(spec => (
-                    <div key={spec.key} className="flex-1 min-w-[100px] px-4 text-right font-bold text-gray-500 uppercase tracking-wider text-sm">{spec.label}</div>
+                    <div key={spec.key} className="flex-1 min-w-[100px] px-4 text-center font-bold text-gray-500 uppercase tracking-wider text-sm">{spec.label}</div>
                 ))
             ) : (
-                <div className="flex-1 text-right px-4 font-bold text-gray-500 uppercase tracking-wider text-sm">分類</div>
+                <div className="flex-1 text-center px-4 font-bold text-gray-500 uppercase tracking-wider text-sm">分類</div>
             )}
 
             <div className={`${colPrice} font-bold text-gray-500 uppercase tracking-wider text-sm`}>價格</div>
