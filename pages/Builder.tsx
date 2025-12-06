@@ -7,7 +7,9 @@ import { useProducts } from '../contexts/ProductContext';
 import { generateSmartBuild } from '../services/geminiService';
 import toast from 'react-hot-toast';
 import ConfirmationModal from '../components/common/ConfirmationModal';
-import { parseWattage, checkCompatibility } from '../utils/builderLogic';
+import { parseWattage, checkCompatibility, parseDimension } from '../utils/builderLogic';
+import InstallmentCalculator from '../components/builder/InstallmentCalculator';
+import { filterProducts, getSmartOptions } from '../utils/searchHelper';
 
 // Slot definition for UI iteration
 const buildSlots = [
@@ -131,113 +133,6 @@ const SwipeableRow = ({ children, onDelete, onReplace }: { children: React.React
             >
                 {children}
             </div>
-        </div>
-    );
-};
-
-// --- Installment Logic Helper ---
-const InstallmentCalculator = ({ totalPrice }: { totalPrice: number }) => {
-    const [mode, setMode] = useState<'credit' | 'cardless'>('credit');
-
-    if (totalPrice === 0) return null;
-
-    // Excel Formula Logic Implementation
-    const calculateCreditCard = (price: number, periods: number, rateHigh: number, rateLow: number) => {
-        // Condition: IF(E1*2.49%>498, ...)
-        const thresholdCheck = (price * 0.0249) > 498;
-        
-        let total = 0;
-        if (thresholdCheck) {
-            // E1 * rateHigh + 498
-            total = price * rateHigh + 498;
-        } else {
-            // E1 * rateLow
-            total = price * rateLow;
-        }
-        
-        // Round to integer for display
-        total = Math.round(total);
-        const monthly = Math.round(total / periods);
-        
-        return { total, monthly };
-    };
-
-    const calculateCardless = (price: number, periods: number, factor: number) => {
-        // Formula: ROUNDUP(ROUNDUP(E1/Factor, 0)/Periods, 0) -> Monthly
-        // Note: JS Math.ceil is equivalent to Excel ROUNDUP(x, 0)
-        const step1 = Math.ceil(price / factor);
-        const monthly = Math.ceil(step1 / periods);
-        const total = monthly * periods;
-        
-        return { total, monthly };
-    };
-
-    const creditRows = [
-        { periods: 3, ...calculateCreditCard(totalPrice, 3, 1.03, 1.0549) },
-        { periods: 6, ...calculateCreditCard(totalPrice, 6, 1.035, 1.0599) },
-        { periods: 12, ...calculateCreditCard(totalPrice, 12, 1.06, 1.0849) },
-        { periods: 24, ...calculateCreditCard(totalPrice, 24, 1.06, 1.0849) }, // Formula in image matches 12 periods
-    ];
-
-    const cardlessRows = [
-        { periods: 6, ...calculateCardless(totalPrice, 6, 0.9551) },
-        { periods: 9, ...calculateCardless(totalPrice, 9, 0.9391) },
-        { periods: 12, ...calculateCardless(totalPrice, 12, 0.92218) },
-        { periods: 15, ...calculateCardless(totalPrice, 15, 0.905) },
-        { periods: 18, ...calculateCardless(totalPrice, 18, 0.885) },
-        { periods: 21, ...calculateCardless(totalPrice, 21, 0.8735) },
-        { periods: 24, ...calculateCardless(totalPrice, 24, 0.8624) },
-        { periods: 30, ...calculateCardless(totalPrice, 30, 0.83333) },
-    ];
-
-    const activeRows = mode === 'credit' ? creditRows : cardlessRows;
-
-    return (
-        <div className="mt-4 border-t border-gray-200 pt-4">
-            <div className="flex bg-gray-100 p-1 rounded-xl mb-3">
-                <button 
-                    onClick={() => setMode('credit')}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all ${mode === 'credit' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-black'}`}
-                >
-                    <CreditCard className="h-3.5 w-3.5" /> 刷卡分期
-                </button>
-                <button 
-                    onClick={() => setMode('cardless')}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all ${mode === 'cardless' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-black'}`}
-                >
-                    <Banknote className="h-3.5 w-3.5" /> 無卡分期
-                </button>
-            </div>
-
-            <div className="overflow-hidden rounded-xl border border-gray-200">
-                <table className="w-full text-sm">
-                    <thead className="bg-gray-50 text-gray-500 font-medium text-xs uppercase">
-                        <tr>
-                            <th className="py-2 pl-4 text-left">期數</th>
-                            <th className="py-2 text-right">每期金額</th>
-                            <th className="py-2 pr-4 text-right text-gray-400">總價</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                        {activeRows.map((row) => (
-                            <tr key={row.periods} className="group hover:bg-gray-50 transition-colors">
-                                <td className="py-2.5 pl-4 font-bold text-gray-700">
-                                    {row.periods} 期
-                                </td>
-                                <td className="py-2.5 text-right font-bold text-black font-mono text-base">
-                                    ${row.monthly.toLocaleString()}
-                                </td>
-                                <td className="py-2.5 pr-4 text-right text-gray-400 text-xs font-mono">
-                                    ${row.total.toLocaleString()}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-            <p className="text-[10px] text-gray-400 mt-2 text-center">
-                * 試算金額僅供參考，實際分期利率與總額以{mode === 'credit' ? '銀行' : '審核'}結果為準。
-            </p>
         </div>
     );
 };
@@ -580,88 +475,19 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
       });
   };
 
-  const getSmartOptions = (category: Category, filterKey: keyof ProductSpecs) => {
-     let relevantProducts = allProducts.filter(p => p.category === category);
-     if (searchQuery.trim()) {
-        const queryRaw = searchQuery.toLowerCase();
-        // Updated logic to support AND (space) and OR (|)
-        const orGroups = queryRaw.split('|');
-        relevantProducts = relevantProducts.filter(p => {
-            const productText = [
-                p.name,
-                p.description,
-                p.specDetails?.brand || '',
-                p.id
-            ].join(' ').toLowerCase();
-
-            return orGroups.some(group => {
-                const andTerms = group.trim().split(/\s+/).filter(t => t);
-                if (andTerms.length === 0) return false;
-                return andTerms.every(term => productText.includes(term));
-            });
-        });
-     }
-     Object.entries(activeFilters).forEach(([key, selectedValues]: [string, string[]]) => {
-      if (key !== filterKey && selectedValues.length > 0) {
-        relevantProducts = relevantProducts.filter(p => {
-          const val = p.specDetails?.[key as keyof ProductSpecs];
-          if (!val) return false;
-          const productValues = val.split(',').map(s => s.trim());
-          return productValues.some(v => selectedValues.includes(v));
-        });
-      }
-    });
-    const values = new Set<string>();
-    relevantProducts.forEach(p => {
-      if (p.specDetails?.[filterKey]) {
-           p.specDetails[filterKey]!.split(',').forEach(v => values.add(v.trim()));
-      }
-    });
-    return Array.from(values).sort();
-  };
-
   const filteredModalProducts = useMemo(() => {
     if (!activeCategory) return [];
-    let products = allProducts.filter(p => p.category === activeCategory);
     
-    if (searchQuery.trim()) {
-        const queryRaw = searchQuery.toLowerCase();
-        // Updated logic to support AND (space) and OR (|)
-        const orGroups = queryRaw.split('|');
-        products = products.filter(p => {
-            const productText = [
-                p.name,
-                p.description,
-                p.specDetails?.brand || '',
-                p.id
-            ].join(' ').toLowerCase();
+    // Pass null if no activeCategory (though we check activeCategory first)
+    const result = filterProducts(allProducts, searchQuery, activeCategory, activeFilters);
 
-            return orGroups.some(group => {
-                const andTerms = group.trim().split(/\s+/).filter(t => t);
-                if (andTerms.length === 0) return false;
-                return andTerms.every(term => productText.includes(term));
-            });
-        });
-    }
-
-    if (Object.keys(activeFilters).length > 0) {
-        products = products.filter(product => {
-            return Object.entries(activeFilters).every(([key, selectedValues]: [string, string[]]) => {
-                if (selectedValues.length === 0) return true;
-                const productValue = product.specDetails?.[key as keyof ProductSpecs];
-                if (!productValue) return false;
-                const values = productValue.split(',').map(s => s.trim());
-                return values.some(v => selectedValues.includes(v));
-            });
-        });
-    }
     switch (modalSort) {
-        case 'price-asc': products.sort((a, b) => a.price - b.price); break;
-        case 'price-desc': products.sort((a, b) => b.price - a.price); break;
-        case 'name-asc': products.sort((a, b) => a.name.localeCompare(b.name)); break;
-        case 'name-desc': products.sort((a, b) => b.name.localeCompare(a.name)); break;
+        case 'price-asc': result.sort((a, b) => a.price - b.price); break;
+        case 'price-desc': result.sort((a, b) => b.price - a.price); break;
+        case 'name-asc': result.sort((a, b) => a.name.localeCompare(b.name)); break;
+        case 'name-desc': result.sort((a, b) => b.name.localeCompare(a.name)); break;
     }
-    return products;
+    return result;
   }, [activeCategory, activeFilters, allProducts, modalSort, searchQuery]);
 
   const toggleFilter = (key: string, value: string) => {
@@ -1140,7 +966,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                             <div className="flex items-center justify-between mb-6"><div className="flex items-center gap-2 text-gray-500 font-bold text-sm uppercase tracking-wider"><ListFilter className="h-4 w-4" /> 篩選條件</div>{Object.keys(activeFilters).length > 0 && (<button onClick={() => setActiveFilters({})} className="text-xs text-blue-600 hover:text-blue-800 font-bold hover:underline">清除全部</button>)}</div>
                             <div className="space-y-1">
                                 {activeCategory && categoryFilters[activeCategory]?.map(filter => {
-                                    const options = getSmartOptions(activeCategory, filter.key);
+                                    const options = getSmartOptions(allProducts, activeCategory, filter.key, searchQuery, activeFilters);
                                     if (options.length === 0) return null;
                                     const isExpanded = expandedNodes[filter.key] ?? true;
                                     const activeCount = activeFilters[filter.key]?.length || 0;
@@ -1342,7 +1168,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                              </div>
                          </div>
                     </div>
-                    {mobileFiltersOpen && activeCategory && (<div className="absolute inset-0 z-30 bg-white flex flex-col lg:hidden animate-fade-in"><div className="p-4 border-b border-gray-100 flex justify-between items-center bg-white shadow-sm flex-shrink-0"><h3 className="font-bold text-lg">篩選條件</h3><button onClick={() => setMobileFiltersOpen(false)} className="p-2 bg-gray-100 rounded-full text-gray-600"><X className="h-5 w-5" /></button></div><div className="flex-1 overflow-y-auto p-4 custom-scrollbar"><div className="space-y-6">{categoryFilters[activeCategory]?.map(filter => { const options = getSmartOptions(activeCategory!, filter.key); if (options.length === 0) return null; return (<div key={filter.key}><h4 className="font-bold text-gray-900 mb-2 text-sm">{filter.label}</h4><div className="flex flex-wrap gap-2">{options.map(option => { const isChecked = activeFilters[filter.key]?.includes(option); return (<button key={option} onClick={() => toggleFilter(filter.key as string, option)} className={`px-3 py-1.5 rounded-lg text-sm border transition-all ${isChecked ? 'bg-black text-white border-black font-bold' : 'bg-white text-gray-600 border-gray-200'}`}>{option}</button>) })}</div></div>); })}</div></div><div className="p-4 border-t border-gray-100 bg-white flex-shrink-0"><button onClick={() => setMobileFiltersOpen(false)} className="w-full py-3 bg-black text-white rounded-xl font-bold">查看 {filteredModalProducts.length} 個結果</button></div></div>)}
+                    {mobileFiltersOpen && activeCategory && (<div className="absolute inset-0 z-30 bg-white flex flex-col lg:hidden animate-fade-in"><div className="p-4 border-b border-gray-100 flex justify-between items-center bg-white shadow-sm flex-shrink-0"><h3 className="font-bold text-lg">篩選條件</h3><button onClick={() => setMobileFiltersOpen(false)} className="p-2 bg-gray-100 rounded-full text-gray-600"><X className="h-5 w-5" /></button></div><div className="flex-1 overflow-y-auto p-4 custom-scrollbar"><div className="space-y-6">{categoryFilters[activeCategory]?.map(filter => { const options = getSmartOptions(allProducts, activeCategory!, filter.key, searchQuery, activeFilters); if (options.length === 0) return null; return (<div key={filter.key}><h4 className="font-bold text-gray-900 mb-2 text-sm">{filter.label}</h4><div className="flex flex-wrap gap-2">{options.map(option => { const isChecked = activeFilters[filter.key]?.includes(option); return (<button key={option} onClick={() => toggleFilter(filter.key as string, option)} className={`px-3 py-1.5 rounded-lg text-sm border transition-all ${isChecked ? 'bg-black text-white border-black font-bold' : 'bg-white text-gray-600 border-gray-200'}`}>{option}</button>) })}</div></div>); })}</div></div><div className="p-4 border-t border-gray-100 bg-white flex-shrink-0"><button onClick={() => setMobileFiltersOpen(false)} className="w-full py-3 bg-black text-white rounded-xl font-bold">查看 {filteredModalProducts.length} 個結果</button></div></div>)}
                 </div>
             </div>
          </div>
