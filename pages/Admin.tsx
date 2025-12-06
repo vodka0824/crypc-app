@@ -60,8 +60,9 @@ const Admin: React.FC = () => {
       const matchesCategory = filterCategory === 'All' || p.category === filterCategory;
       
       let matchesSearch = true;
-      if (searchQuery.trim()) {
-        const searchTerms = searchQuery.toLowerCase().trim().split(/\s+/);
+      const queryRaw = searchQuery.trim().toLowerCase();
+
+      if (queryRaw) {
         // Combine all searchable text fields including specs
         const productText = [
           p.name,
@@ -70,8 +71,18 @@ const Admin: React.FC = () => {
           ...Object.values(p.specDetails || {})
         ].join(' ').toLowerCase();
         
-        // Multi-keyword logic: every term must be present in the product info
-        matchesSearch = searchTerms.every(term => productText.includes(term));
+        // Advanced Logic: 
+        // 1. Split by '|' for OR groups (e.g. "Intel i7 | AMD R7")
+        // 2. Inside each group, split by space for AND requirements (e.g. "Intel" AND "i7")
+        const orGroups = queryRaw.split('|');
+
+        matchesSearch = orGroups.some(group => {
+            const andTerms = group.trim().split(/\s+/).filter(t => t);
+            if (andTerms.length === 0) return false;
+            
+            // The product must contain ALL terms in this specific group
+            return andTerms.every(term => productText.includes(term));
+        });
       }
 
       return matchesCategory && matchesSearch;
@@ -365,10 +376,10 @@ const Admin: React.FC = () => {
                       <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                       <input 
                           type="text" 
-                          placeholder="搜尋商品..." 
+                          placeholder="搜尋... (空白=同時符合, | =擇一符合)" 
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          className="w-full pl-12 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-black focus:border-transparent focus:bg-white transition-all font-medium text-sm md:text-base"
+                          className="w-full pl-12 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-black focus:border-transparent focus:bg-white transition-all font-medium text-sm md:text-base placeholder-gray-400"
                       />
                       {searchQuery && (
                           <button 
