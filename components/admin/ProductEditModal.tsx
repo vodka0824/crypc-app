@@ -1,7 +1,7 @@
 
 // components/admin/ProductEditModal.tsx
 import React, { useState, useEffect } from 'react';
-import { Save, X, LayoutGrid, AlignLeft, Tag, ImageIcon, Loader2, DollarSign, Package, FileText, Check } from 'lucide-react';
+import { Save, X, LayoutGrid, AlignLeft, Tag, ImageIcon, Loader2, DollarSign, Package, FileText } from 'lucide-react';
 import { Category, Product, ProductSpecs } from '../../types';
 import { categoryDisplayMap, categoryFilters } from '../../data/mockData';
 
@@ -71,8 +71,14 @@ const ProductEditModal: React.FC<ProductEditModalProps> = ({
     <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center sm:p-4">
       <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity" onClick={!isLoading ? onClose : undefined} />
       
-      <div className="relative bg-[#F8F9FA] w-full md:max-w-6xl h-[95vh] md:h-[85vh] rounded-t-3xl md:rounded-3xl shadow-2xl flex flex-col transition-all animate-slide-up md:animate-fade-in overflow-hidden border border-white/50">
+      {/* Container: Full height on mobile (bottom sheet), Centered Modal on Desktop */}
+      <div className="relative bg-[#F8F9FA] w-full md:max-w-6xl h-[92vh] md:h-[85vh] rounded-t-3xl md:rounded-3xl shadow-2xl flex flex-col transition-all animate-slide-up md:animate-fade-in overflow-hidden border border-white/50">
         
+        {/* Mobile Drag Handle */}
+        <div className="md:hidden w-full flex justify-center pt-3 pb-1 bg-white" onClick={!isLoading ? onClose : undefined}>
+            <div className="w-12 h-1.5 bg-gray-200 rounded-full" />
+        </div>
+
         {/* Header - Compact */}
         <div className="px-5 py-3 border-b border-gray-200 flex justify-between items-center bg-white/80 backdrop-blur-md z-10 flex-shrink-0 sticky top-0">
           <div className="flex items-center gap-3">
@@ -90,7 +96,7 @@ const ProductEditModal: React.FC<ProductEditModalProps> = ({
         </div>
         
         {/* Content - Compact 2 Column Layout */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#F8F9FA]">
+        <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#F8F9FA] safe-area-bottom">
           <form id="product-form" onSubmit={onSave} className="p-5">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
               
@@ -185,7 +191,7 @@ const ProductEditModal: React.FC<ProductEditModalProps> = ({
 
                     {/* ID & Name in one row */}
                     <div className="grid grid-cols-4 gap-4">
-                        <div className="col-span-1">
+                        <div className="col-span-4 md:col-span-1">
                             <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1 ml-1">ID (Unique)</label>
                             <input 
                                 type="text" 
@@ -197,7 +203,7 @@ const ProductEditModal: React.FC<ProductEditModalProps> = ({
                                 disabled={isEditMode || isLoading}
                             />
                         </div>
-                        <div className="col-span-3">
+                        <div className="col-span-4 md:col-span-3">
                             <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1 ml-1">商品名稱</label>
                             <input 
                                 type="text" 
@@ -298,7 +304,7 @@ const ProductEditModal: React.FC<ProductEditModalProps> = ({
         </div>
         
         {/* Footer Actions - Compact */}
-        <div className="px-5 py-3 border-t border-gray-200 bg-white md:rounded-b-3xl flex justify-end gap-3 z-10 flex-shrink-0">
+        <div className="px-5 py-3 border-t border-gray-200 bg-white md:rounded-b-3xl flex justify-end gap-3 z-10 flex-shrink-0 safe-area-bottom">
           <button 
             onClick={!isLoading ? onClose : undefined} 
             disabled={isLoading} 
