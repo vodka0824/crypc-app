@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Category, Product, BuildState, BuilderItem, ProductSpecs, BuildTemplate, CartItem } from '../types';
-import { Plus, Check, RotateCcw, X, ChevronDown, ChevronRight, Cpu, Minus, Trash2, AlertTriangle, SlidersHorizontal, ListFilter, Eraser, Monitor, Disc, Save, FolderOpen, Search, RefreshCw, Sparkles, Loader2, Bot, Share2, Copy, StickyNote, Box, Fan, Wind, Zap, ShoppingCart, CreditCard, Banknote, CircuitBoard, HardDrive, Gamepad2, Droplets, Mouse, MemoryStick, Clock, ArrowRight, ArrowUp, ArrowDown, ArrowUpDown, MoreHorizontal, MessageSquare, Send } from 'lucide-react';
+import { Plus, Check, RotateCcw, X, ChevronDown, ChevronRight, Cpu, Minus, Trash2, AlertTriangle, SlidersHorizontal, ListFilter, Eraser, Monitor, Disc, Save, FolderOpen, Search, RefreshCw, Sparkles, Loader2, Bot, Share2, Copy, StickyNote, Box, Fan, Wind, Zap, ShoppingCart, CreditCard, Banknote, CircuitBoard, HardDrive, Gamepad2, Droplets, Mouse, MemoryStick, Clock, ArrowRight, ArrowUp, ArrowDown, ArrowUpDown, MoreHorizontal, MessageSquare, Send, ClipboardCopy } from 'lucide-react';
 import { categoryFilters, categoryDisplayMap } from '../data/mockData';
 import { useProducts } from '../contexts/ProductContext';
 import { generateSmartBuild } from '../services/geminiService';
@@ -41,30 +41,41 @@ const triggerHaptic = () => {
 
 // --- Mobile Components ---
 
-// 1. Step Progress Bar
+// 1. Step Progress Bar (Updated Order)
 const MobileStepProgress = ({ cartItems }: { cartItems: CartItem[] }) => {
-    const hasCategory = (cats: Category[]) => cats.some(c => cartItems.some(i => i.category === c));
+    const hasCategory = (cat: Category) => cartItems.some(i => i.category === cat);
     
+    // Ordered specifically as requested
     const steps = [
-        { label: '核心', active: hasCategory([Category.CPU, Category.MB, Category.RAM]) },
-        { label: '顯卡', active: hasCategory([Category.GPU]) },
-        { label: '儲存', active: hasCategory([Category.SSD]) },
-        { label: '機電', active: hasCategory([Category.CASE, Category.PSU, Category.COOLER, Category.AIR_COOLER]) },
-        { label: '周邊', active: hasCategory([Category.MONITOR, Category.SOFTWARE, Category.OTHERS]) },
+        { label: '處理器', category: Category.CPU },
+        { label: '記憶體', category: Category.RAM },
+        { label: '主機板', category: Category.MB },
+        { label: '儲存', category: Category.SSD },
+        { label: '顯卡', category: Category.GPU },
+        { label: '電源', category: Category.PSU },
+        { label: '機殼', category: Category.CASE },
     ];
+
+    const activeStepsCount = steps.filter(s => hasCategory(s.category)).length;
 
     return (
         <div className="md:hidden flex justify-between items-center px-4 py-3 bg-white border-b border-gray-100 sticky top-16 z-20 overflow-x-auto hide-scrollbar">
-            {steps.map((step, idx) => (
-                <div key={idx} className="flex flex-col items-center gap-1 min-w-[3rem]">
-                    <div className={`w-2 h-2 rounded-full transition-all duration-500 ${step.active ? 'bg-black scale-125' : 'bg-gray-200'}`} />
-                    <span className={`text-[10px] font-bold ${step.active ? 'text-black' : 'text-gray-400'}`}>{step.label}</span>
-                </div>
-            ))}
+            {steps.map((step, idx) => {
+                const isActive = hasCategory(step.category);
+                return (
+                    <div key={idx} className="flex flex-col items-center gap-1 min-w-[3.5rem] flex-shrink-0">
+                        <div className={`w-2.5 h-2.5 rounded-full transition-all duration-500 border-2 ${isActive ? 'bg-black border-black scale-110' : 'bg-white border-gray-300'}`} />
+                        <span className={`text-[10px] font-bold ${isActive ? 'text-black' : 'text-gray-400'}`}>{step.label}</span>
+                    </div>
+                );
+            })}
             {/* Progress Line Background */}
-            <div className="absolute top-[19px] left-6 right-6 h-[2px] bg-gray-100 -z-10" />
-            <div className="absolute top-[19px] left-6 h-[2px] bg-black -z-10 transition-all duration-500" 
-                 style={{ width: `${(steps.filter(s => s.active).length / steps.length) * 85}%` }} />
+            <div className="absolute top-[20px] left-8 right-8 h-[2px] bg-gray-100 -z-10" />
+            {/* Active Progress Line */}
+            <div 
+                className="absolute top-[20px] left-8 h-[2px] bg-black -z-10 transition-all duration-500" 
+                style={{ width: `calc(${(activeStepsCount > 0 ? (activeStepsCount - 1) : 0) / (steps.length - 1)} * (100% - 4rem))` }} 
+            />
         </div>
     );
 };
@@ -880,12 +891,16 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-[0_-4px_16px_rgba(0,0,0,0.1)] px-4 py-3 safe-area-bottom">
          <div className="flex items-center gap-3">
              <div className="flex-1 min-w-0 flex flex-col">
-                 <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">預估總金額</div>
+                 <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-0.5">預估總金額</div>
                  <div className="text-2xl font-bold text-black leading-none truncate tracking-tight">${totalPrice.toLocaleString()}</div>
              </div>
              
-             <button onClick={handleShareBuild} className="h-12 px-6 bg-black text-white rounded-xl font-bold shadow-lg shadow-gray-300 active:scale-95 transition-transform flex items-center justify-center gap-2">
-                 <Check className="h-5 w-5" /> 結帳
+             {/* AI Builder Button (Moved out of drawer) */}
+             <button 
+                onClick={() => setIsAiModalOpen(true)}
+                className="h-12 px-5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 active:scale-95 transition-transform flex items-center justify-center gap-1.5"
+             >
+                 <Sparkles className="h-4 w-4 text-yellow-300" /> <span className="text-sm">AI 配單</span>
              </button>
 
              {/* More Menu Trigger */}
@@ -899,20 +914,26 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-[60] flex items-end justify-center md:hidden">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
-            <div className="relative bg-white w-full rounded-t-3xl p-6 shadow-2xl animate-slide-up flex flex-col gap-2">
-                <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4" />
-                <button onClick={() => { setMobileMenuOpen(false); setIsAiModalOpen(true); }} className="flex items-center gap-3 w-full p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl font-bold text-lg">
-                    <div className="p-2 bg-purple-100 text-purple-600 rounded-lg"><Sparkles className="h-5 w-5" /></div> AI 智能配單
+            <div className="relative bg-white w-full rounded-t-3xl p-6 shadow-2xl animate-slide-up flex flex-col gap-3 h-auto max-h-[85vh] safe-area-bottom">
+                <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-2 flex-shrink-0" />
+                
+                {/* Copy Quote Button (Formerly Checkout, Moved inside) */}
+                <button onClick={handleShareBuild} className="flex items-center justify-center gap-3 w-full p-4 bg-black text-white hover:bg-gray-800 rounded-2xl font-bold text-lg shadow-lg active:scale-95 transition-transform">
+                    <ClipboardCopy className="h-5 w-5" /> 複製報價單
                 </button>
-                <div className="flex gap-2">
-                    <button onClick={() => openTemplateModal('load')} className="flex-1 flex items-center justify-center gap-2 p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl font-bold text-gray-700">
-                        <FolderOpen className="h-5 w-5" /> 載入範本
+
+                <div className="grid grid-cols-2 gap-3">
+                    <button onClick={() => openTemplateModal('load')} className="flex flex-col items-center justify-center gap-2 p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl font-bold text-gray-700 border border-gray-100 active:bg-gray-200 transition-colors">
+                        <FolderOpen className="h-6 w-6 text-blue-600" /> 
+                        <span className="text-sm">載入範本</span>
                     </button>
-                    <button onClick={() => openTemplateModal('save')} className="flex-1 flex items-center justify-center gap-2 p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl font-bold text-gray-700">
-                        <Save className="h-5 w-5" /> 儲存範本
+                    <button onClick={() => openTemplateModal('save')} className="flex flex-col items-center justify-center gap-2 p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl font-bold text-gray-700 border border-gray-100 active:bg-gray-200 transition-colors">
+                        <Save className="h-6 w-6 text-green-600" /> 
+                        <span className="text-sm">儲存範本</span>
                     </button>
                 </div>
-                <button onClick={resetBuild} className="w-full p-4 mt-2 text-red-600 font-bold border border-red-100 rounded-2xl flex items-center justify-center gap-2 hover:bg-red-50">
+                
+                <button onClick={resetBuild} className="w-full p-4 text-red-600 font-bold border border-red-100 rounded-2xl flex items-center justify-center gap-2 hover:bg-red-50 active:scale-95 transition-transform mt-2">
                     <Trash2 className="h-5 w-5" /> 清空重選
                 </button>
             </div>
@@ -950,7 +971,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                             <Bot className="h-5 w-5" />
                         </div>
                         <div>
-                            <h3 className="font-bold text-gray-900">CryPC AI 顧問</h3>
+                            <h3 className="font-bold text-gray-900">哭PC AI配單系統</h3>
                             <p className="text-[10px] text-green-500 font-bold flex items-center gap-1"><span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" /> 線上</p>
                         </div>
                     </div>
