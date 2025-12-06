@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Category, Product } from '../types';
+import { Category, Product, ProductSpecs } from '../types';
 import { Filter, ShoppingBag, X, ChevronDown, ChevronRight, SlidersHorizontal, Check, Home, Cpu, CircuitBoard, HardDrive, Monitor, Disc, Box, Wind, Search, MemoryStick, Gamepad2, Droplets, Mouse, Zap } from 'lucide-react';
 import { categoryFilters, categoryDisplayMap } from '../data/mockData';
 import { useProducts } from '../contexts/ProductContext';
