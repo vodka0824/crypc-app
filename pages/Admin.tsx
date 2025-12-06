@@ -1,10 +1,10 @@
 
 // pages/Admin.tsx
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useProducts } from '../contexts/ProductContext';
 import { Category, Product, ProductSpecs } from '../types';
-import { Upload, Database, Plus, Search, X, DollarSign, Loader2, Package, Settings } from 'lucide-react';
+import { Upload, Database, Plus, Search, X, DollarSign, Loader2, Package, Settings, Trash2, Tag, AlignJustify, AlignLeft } from 'lucide-react';
 import { filterProducts } from '../utils/searchHelper';
 
 import AdminHeader from '../components/admin/AdminHeader';
@@ -37,6 +37,9 @@ const Admin: React.FC = () => {
   const [currentProduct, setCurrentProduct] = useState<Partial<Product>>({});
   const [filterCategory, setFilterCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // UX State
+  const [isCompactMode, setIsCompactMode] = useState(false); // New: Compact Mode State
 
   // --- UX State ---
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -55,6 +58,17 @@ const Admin: React.FC = () => {
   // Price Update State
   const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
   const [priceUpdateInput, setPriceUpdateInput] = useState('');
+
+  // Keyboard shortcut for deselecting (Esc)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSelectedIds(new Set());
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Use shared logic for filtering
   const filteredProducts = useMemo(() => {
@@ -372,16 +386,52 @@ const Admin: React.FC = () => {
                   </div>
 
                   {/* Action Buttons - Horizontal Scroll on Mobile */}
-                  <div className="flex gap-2 md:gap-3 shrink-0 overflow-x-auto hide-scrollbar pb-1 md:pb-0">
-                      <button onClick={() => setIsImporting(true)} className={`${buttonBaseClass} ${buttonSecondaryClass} whitespace-nowrap`}>
-                          <Upload className="h-4 w-4" /> <span className="">匯入</span>
+                  <div className="flex gap-2 md:gap-3 shrink-0 overflow-x-auto hide-scrollbar pb-1 md:pb-0 items-center">
+                      
+                      {/* Compact Mode Toggle (Desktop Only) */}
+                      <button 
+                        onClick={() => setIsCompactMode(!isCompactMode)}
+                        className={`hidden md:flex items-center justify-center ${buttonBaseClass} ${buttonSecondaryClass} px-3`}
+                        title={isCompactMode ? "切換至舒適模式" : "切換至緊湊模式"}
+                      >
+                        {isCompactMode ? <AlignLeft className="h-4 w-4" /> : <AlignJustify className="h-4 w-4" />}
                       </button>
-                      <button onClick={handleResetDb} className={`${buttonBaseClass} ${buttonSecondaryClass} whitespace-nowrap`} title="重置為預設資料">
-                          <Database className="h-4 w-4" /> <span className="">初始化</span>
-                      </button>
-                      <button onClick={handleAddNew} className="hidden md:flex h-11 px-5 rounded-xl font-bold items-center gap-2 transition-all active:scale-95 shadow-md bg-black border border-black text-white hover:bg-gray-800 whitespace-nowrap">
-                          <Plus className="h-4 w-4" /> <span className="">新增</span>
-                      </button>
+
+                      {/* Desktop Batch Actions (Replaces standard actions if selected > 0) */}
+                      {selectedIds.size > 0 ? (
+                        <div className="hidden md:flex items-center gap-2 animate-fade-in">
+                            <div className="h-6 w-px bg-gray-300 mx-1"></div>
+                            <span className="text-sm font-bold text-blue-600 whitespace-nowrap mr-1">已選 {selectedIds.size}</span>
+                            
+                            {isSameCategory && commonCategory !== Category.OTHERS && (
+                                <button onClick={() => { setBatchSpecData({}); setIsBatchSpecEditing(true); }} className={`${buttonBaseClass} ${buttonSecondaryClass} text-blue-600 border-blue-200 hover:bg-blue-50`}>
+                                    <Tag className="h-4 w-4" /> <span className="whitespace-nowrap">標籤</span>
+                                </button>
+                            )}
+                            <button onClick={() => { setIsPriceModalOpen(true); setPriceUpdateInput(''); }} className={`${buttonBaseClass} ${buttonSecondaryClass}`}>
+                                <DollarSign className="h-4 w-4" /> <span className="whitespace-nowrap">改價</span>
+                            </button>
+                            <button onClick={handleBatchDelete} className={`${buttonBaseClass} bg-red-50 text-red-600 border-red-100 hover:bg-red-100 hover:border-red-200`}>
+                                <Trash2 className="h-4 w-4" /> <span className="whitespace-nowrap">刪除</span>
+                            </button>
+                            <button onClick={() => setSelectedIds(new Set())} className="p-2 hover:bg-gray-100 rounded-full text-gray-500" title="取消選取 (Esc)">
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+                      ) : (
+                        // Standard Actions
+                        <>
+                            <button onClick={() => setIsImporting(true)} className={`${buttonBaseClass} ${buttonSecondaryClass} whitespace-nowrap`}>
+                                <Upload className="h-4 w-4" /> <span className="">匯入</span>
+                            </button>
+                            <button onClick={handleResetDb} className={`${buttonBaseClass} ${buttonSecondaryClass} whitespace-nowrap`} title="重置為預設資料">
+                                <Database className="h-4 w-4" /> <span className="">初始化</span>
+                            </button>
+                            <button onClick={handleAddNew} className="hidden md:flex h-11 px-5 rounded-xl font-bold items-center gap-2 transition-all active:scale-95 shadow-md bg-black border border-black text-white hover:bg-gray-800 whitespace-nowrap">
+                                <Plus className="h-4 w-4" /> <span className="">新增</span>
+                            </button>
+                        </>
+                      )}
                   </div>
                 </div>
 
@@ -406,6 +456,7 @@ const Admin: React.FC = () => {
                     onSelectOne={toggleSelectOne}
                     onEdit={handleEdit}
                     onDelete={handleDelete}
+                    isCompactMode={isCompactMode}
                   />
                 </div>
 
@@ -429,21 +480,23 @@ const Admin: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. Floating Action Toolbar (Only for Products Tab) */}
+      {/* 3. Floating Action Toolbar (Only for Products Tab, and Only Mobile now) */}
       {activeTab === 'products' && (
-        <BatchActionsToolbar
-          selectedIds={selectedIds}
-          isSameCategory={isSameCategory}
-          commonCategory={commonCategory}
-          onBatchDelete={handleBatchDelete}
-          onBatchPriceUpdate={() => { setIsPriceModalOpen(true); setPriceUpdateInput(''); }}
-          onOpenBatchSpecEdit={() => {
-              if (!isSameCategory) return;
-              setBatchSpecData({});
-              setIsBatchSpecEditing(true);
-          }}
-          onClearSelection={() => setSelectedIds(new Set())}
-        />
+        <div className="md:hidden">
+            <BatchActionsToolbar
+            selectedIds={selectedIds}
+            isSameCategory={isSameCategory}
+            commonCategory={commonCategory}
+            onBatchDelete={handleBatchDelete}
+            onBatchPriceUpdate={() => { setIsPriceModalOpen(true); setPriceUpdateInput(''); }}
+            onOpenBatchSpecEdit={() => {
+                if (!isSameCategory) return;
+                setBatchSpecData({});
+                setIsBatchSpecEditing(true);
+            }}
+            onClearSelection={() => setSelectedIds(new Set())}
+            />
+        </div>
       )}
 
       {/* Modals */}
