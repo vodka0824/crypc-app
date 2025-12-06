@@ -287,7 +287,16 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                 ...newCart[existingIndex],
                 quantity: replacingItemId ? quantityToAdd : newCart[existingIndex].quantity + quantityToAdd 
             };
-            newCart[existingIndex].quantity = quantityToAdd; // Force update to requested quantity in some flows if needed
+            // Ensure if user explicitly set quantity (like replacing), we respect it if needed, or add to existing.
+            // For simple "Add" flow with quantity 1 button:
+            if (quantityToAdd === 1 && !replacingItemId) {
+                 // Keep accumulative logic for simple add
+            } else {
+                 // For replace or specific quantity set in modal
+                 // In current flow `quantityToAdd` is usually currentQty from modal state.
+                 // If replacing, we just set it. If adding, we accumulate.
+                 if (replacingItemId) newCart[existingIndex].quantity = quantityToAdd;
+            }
         } else {
             newCart.push({ ...product, quantity: quantityToAdd });
         }
@@ -643,21 +652,39 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                                                 {(item.category === Category.CPU || item.category === Category.GPU) && item.specDetails?.tdp && <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100 ml-1 whitespace-nowrap">TDP {item.specDetails.tdp}</span>}
                                                 {errorMsg && <span className="flex-shrink-0 inline-flex items-center gap-1 text-[10px] md:text-xs bg-red-50 text-red-600 px-2 py-0.5 rounded border border-red-200"><AlertTriangle className="h-3 w-3" /><span className="hidden md:inline font-medium">{errorMsg}</span></span>}
                                             </div>
-                                            {errorMsg && <div className="md:hidden text-[10px] text-red-500 mt-1 truncate whitespace-nowrap">{errorMsg}</div>}
+                                            {/* Force Single Line Error on Mobile */}
+                                            {errorMsg && <div className="md:hidden text-[10px] text-red-500 mt-1 w-full overflow-hidden text-ellipsis whitespace-nowrap">{errorMsg}</div>}
                                             <div className="hidden md:block text-sm text-gray-500 mt-1 line-clamp-1">{item.description}</div>
                                         </div>
 
                                         <div className="flex items-center justify-between mt-2 md:mt-0 md:ml-4 gap-3">
                                             <div className="font-bold text-base md:text-xl text-gray-900 tabular-nums min-w-[80px] text-right">${item.price.toLocaleString()}</div>
                                             <div className="flex items-center gap-2">
+                                                {/* Mobile: White Smart Capsule Button */}
+                                                <div className="md:hidden flex items-center bg-white border border-gray-200 rounded-full h-8 px-1 shadow-[0_2px_8px_rgba(0,0,0,0.08)]" onClick={(e) => e.stopPropagation()}>
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); if (item.quantity <= 1) handleRemoveProduct(item.id); else handleQuantityChange(item.id, -1); }} 
+                                                        className="w-7 h-full flex items-center justify-center text-gray-600 active:scale-90 transition-transform"
+                                                    >
+                                                        {item.quantity <= 1 ? <Trash2 className="h-3.5 w-3.5 text-red-500" /> : <Minus className="h-3.5 w-3.5" />}
+                                                    </button>
+                                                    <span className="w-6 text-center text-sm font-bold text-black tabular-nums leading-none">{item.quantity}</span>
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); handleQuantityChange(item.id, 1); }} 
+                                                        className="w-7 h-full flex items-center justify-center text-gray-600 active:scale-90 transition-transform"
+                                                    >
+                                                        <Plus className="h-3.5 w-3.5" />
+                                                    </button>
+                                                </div>
+
+                                                {/* Desktop: Standard Layout */}
                                                 <div className="hidden md:flex items-center bg-gray-50 border border-gray-200 rounded-lg h-9">
                                                     <button onClick={(e) => { e.stopPropagation(); handleQuantityChange(item.id, -1); }} className="w-8 hover:bg-gray-200 h-full rounded-l-lg text-gray-600 flex items-center justify-center" disabled={item.quantity <= 1}><Minus className="h-3 w-3" /></button>
                                                     <span className="w-8 text-center text-sm font-bold text-black">{item.quantity}</span>
                                                     <button onClick={(e) => { e.stopPropagation(); handleQuantityChange(item.id, 1); }} className="w-8 hover:bg-gray-200 h-full rounded-r-lg text-gray-600 flex items-center justify-center"><Plus className="h-3 w-3" /></button>
                                                 </div>
-                                                <button onClick={(e) => { e.stopPropagation(); setQtySelectorId(item.id); }} className="md:hidden flex items-center justify-center gap-1 bg-gray-50 border border-gray-200 rounded-lg h-8 px-3 text-sm font-bold text-black shadow-sm active:scale-95">x{item.quantity} <ChevronDown className="h-3 w-3 opacity-50 ml-1" /></button>
                                                 <button onClick={(e) => { e.stopPropagation(); handleStartReplace(item); }} className="hidden md:block p-2 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors" title="更換商品"><RefreshCw className="h-5 w-5" /></button>
-                                                <button onClick={(e) => { e.stopPropagation(); handleRemoveProduct(item.id); }} className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"><Trash2 className="h-5 w-5" /></button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleRemoveProduct(item.id); }} className="hidden md:block p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"><Trash2 className="h-5 w-5" /></button>
                                             </div>
                                         </div>
                                     </div>
@@ -1050,7 +1077,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                                                                  ${product.price.toLocaleString()}
                                                              </div>
                                                              
-                                                             {/* Mobile: Smart Capsule Button */}
+                                                             {/* Mobile: Smart Capsule Button (White) */}
                                                              <div className="md:hidden">
                                                                 {replacingItemId ? (
                                                                     <button 
@@ -1060,25 +1087,24 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                                                                         <RefreshCw className="h-3.5 w-3.5" /> 更換
                                                                     </button>
                                                                 ) : qtyInCart > 0 ? (
-                                                                    <div className="flex items-center bg-black rounded-full h-9 px-1 shadow-md animate-fade-in transition-all duration-300 min-w-[100px]">
+                                                                    <div className="flex items-center bg-white rounded-full h-9 px-1 shadow-[0_2px_8px_rgba(0,0,0,0.12)] border border-gray-100 animate-fade-in transition-all duration-300 min-w-[100px]" onClick={(e) => e.stopPropagation()}>
                                                                         <button 
                                                                             onClick={(e) => {
                                                                                 e.stopPropagation();
                                                                                 if(qtyInCart === 1) handleRemoveProduct(product.id);
                                                                                 else handleQuantityChange(product.id, -1);
                                                                             }}
-                                                                            className="w-8 h-8 flex items-center justify-center text-white/90 hover:text-white active:scale-90 transition-transform"
+                                                                            className="w-8 h-8 flex items-center justify-center text-gray-600 active:scale-90 transition-transform"
                                                                         >
-                                                                            {qtyInCart === 1 ? <Trash2 className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
+                                                                            {qtyInCart === 1 ? <Trash2 className="h-4 w-4 text-red-500" /> : <Minus className="h-4 w-4" />}
                                                                         </button>
-                                                                        <span className="flex-1 text-center font-bold text-white text-sm tabular-nums select-none">{qtyInCart}</span>
+                                                                        <span className="flex-1 text-center font-bold text-black text-sm tabular-nums select-none">{qtyInCart}</span>
                                                                         <button 
                                                                             onClick={(e) => {
                                                                                 e.stopPropagation();
-                                                                                // Fix: use handleSelectProduct with specific increment or handleQuantityChange
                                                                                 handleSelectProduct(product, qtyInCart + 1);
                                                                             }}
-                                                                            className="w-8 h-8 flex items-center justify-center text-white/90 hover:text-white active:scale-90 transition-transform"
+                                                                            className="w-8 h-8 flex items-center justify-center text-gray-600 active:scale-90 transition-transform"
                                                                         >
                                                                             <Plus className="h-4 w-4" />
                                                                         </button>
