@@ -1005,13 +1005,16 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                                  ) : (
                                      filteredModalProducts.map(product => {
                                          const currentQty = rowQuantities[product.id] || 1;
+                                         const qtyInCart = cartItems.find(i => i.id === product.id)?.quantity || 0;
+                                         const isSelected = qtyInCart > 0;
+
                                          return (
-                                             <div key={product.id} className="group bg-white md:border md:border-gray-100 md:rounded-2xl p-3 md:p-4 hover:shadow-lg hover:border-gray-200 transition-all border-b border-gray-100 last:border-0 md:border-b">
+                                             <div key={product.id} className={`group bg-white md:border md:border-gray-100 md:rounded-2xl p-3 md:p-4 hover:shadow-lg hover:border-gray-200 transition-all border-b border-gray-100 last:border-0 md:border-b ${isSelected ? 'md:bg-white bg-gray-50 border-b-gray-200' : ''}`}>
                                                  {/* Mobile Layout: Horizontal Compact Row */}
-                                                 <div className="flex flex-row md:flex-col gap-3 md:gap-4 items-center md:items-stretch">
+                                                 <div className={`flex flex-row md:flex-col gap-3 md:gap-4 items-center md:items-stretch ${isSelected ? 'opacity-100' : ''}`}>
                                                      
-                                                     {/* Image */}
-                                                     <div className="w-16 h-16 md:w-full md:h-40 bg-gray-50 rounded-xl md:rounded-lg flex-shrink-0 flex items-center justify-center p-1 border border-gray-100 overflow-hidden">
+                                                     {/* Image - HIDDEN on Mobile as requested */}
+                                                     <div className="hidden md:flex w-16 h-16 md:w-full md:h-40 bg-gray-50 rounded-xl md:rounded-lg flex-shrink-0 items-center justify-center p-1 border border-gray-100 overflow-hidden">
                                                          {product.image ? (
                                                              <img src={product.image} className="w-full h-full object-contain mix-blend-multiply" alt="" />
                                                          ) : (
@@ -1022,7 +1025,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                                                      {/* Info Section */}
                                                      <div className="flex-1 min-w-0 flex flex-col md:block justify-center">
                                                          <div className="flex justify-between items-start mb-0.5 md:mb-1">
-                                                             <h4 className="font-bold text-gray-900 leading-tight text-sm line-clamp-2 md:line-clamp-2" title={product.name}>
+                                                             <h4 className={`font-bold leading-tight text-sm line-clamp-2 md:line-clamp-2 ${isSelected ? 'text-black' : 'text-gray-900'}`} title={product.name}>
                                                                  {product.name}
                                                              </h4>
                                                          </div>
@@ -1042,24 +1045,70 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                                                          </div>
 
                                                          {/* Price & Actions Row (Desktop & Mobile Unified structure, styled differently) */}
-                                                         <div className="mt-auto md:pt-3 md:border-t md:border-gray-50 flex items-center justify-between gap-3">
+                                                         <div className="mt-auto md:pt-3 md:border-t md:border-gray-50 flex items-center justify-between gap-3 relative">
                                                              <div className="font-bold text-base md:text-lg text-black tabular-nums">
                                                                  ${product.price.toLocaleString()}
                                                              </div>
                                                              
-                                                             <div className="flex items-center gap-2">
-                                                                 {/* Qty Control: Compact on mobile */}
-                                                                 <div className="flex items-center bg-gray-50 rounded-lg h-8 md:h-9 border border-gray-200">
+                                                             {/* Mobile: Smart Capsule Button */}
+                                                             <div className="md:hidden">
+                                                                {replacingItemId ? (
+                                                                    <button 
+                                                                        onClick={() => handleSelectProduct(product, 1)}
+                                                                        className="h-9 px-4 rounded-full bg-black text-white font-bold text-xs shadow-sm active:scale-95 flex items-center gap-1"
+                                                                    >
+                                                                        <RefreshCw className="h-3.5 w-3.5" /> 更換
+                                                                    </button>
+                                                                ) : qtyInCart > 0 ? (
+                                                                    <div className="flex items-center bg-black rounded-full h-9 px-1 shadow-md animate-fade-in transition-all duration-300 min-w-[100px]">
+                                                                        <button 
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                if(qtyInCart === 1) handleRemoveProduct(product.id);
+                                                                                else handleQuantityChange(product.id, -1);
+                                                                            }}
+                                                                            className="w-8 h-8 flex items-center justify-center text-white/90 hover:text-white active:scale-90 transition-transform"
+                                                                        >
+                                                                            {qtyInCart === 1 ? <Trash2 className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
+                                                                        </button>
+                                                                        <span className="flex-1 text-center font-bold text-white text-sm tabular-nums select-none">{qtyInCart}</span>
+                                                                        <button 
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                handleSelectProduct(product, 1);
+                                                                            }}
+                                                                            className="w-8 h-8 flex items-center justify-center text-white/90 hover:text-white active:scale-90 transition-transform"
+                                                                        >
+                                                                            <Plus className="h-4 w-4" />
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <button 
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleSelectProduct(product, 1);
+                                                                        }}
+                                                                        className="w-9 h-9 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center text-black hover:bg-gray-50 transition-all active:scale-90"
+                                                                    >
+                                                                        <Plus className="h-5 w-5" />
+                                                                    </button>
+                                                                )}
+                                                             </div>
+
+                                                             {/* Desktop: Standard Layout (Hidden on Mobile) */}
+                                                             <div className="hidden md:flex items-center gap-2">
+                                                                 {/* Qty Control */}
+                                                                 <div className="flex items-center bg-gray-50 rounded-lg h-9 border border-gray-200">
                                                                      <button 
                                                                          onClick={(e) => { e.stopPropagation(); setRowQuantities(prev => ({ ...prev, [product.id]: Math.max(1, (prev[product.id] || 1) - 1) })); }}
-                                                                         className="w-7 md:w-8 h-full flex items-center justify-center hover:bg-gray-200 rounded-l-lg text-gray-600"
+                                                                         className="w-8 h-full flex items-center justify-center hover:bg-gray-200 rounded-l-lg text-gray-600"
                                                                      >
                                                                          <Minus className="h-3 w-3" />
                                                                      </button>
-                                                                     <span className="w-6 md:w-8 text-center text-xs md:text-sm font-bold text-black">{currentQty}</span>
+                                                                     <span className="w-8 text-center text-sm font-bold text-black">{currentQty}</span>
                                                                      <button 
                                                                          onClick={(e) => { e.stopPropagation(); setRowQuantities(prev => ({ ...prev, [product.id]: (prev[product.id] || 1) + 1 })); }}
-                                                                         className="w-7 md:w-8 h-full flex items-center justify-center hover:bg-gray-200 rounded-r-lg text-gray-600"
+                                                                         className="w-8 h-full flex items-center justify-center hover:bg-gray-200 rounded-r-lg text-gray-600"
                                                                      >
                                                                          <Plus className="h-3 w-3" />
                                                                      </button>
@@ -1068,11 +1117,11 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                                                                  {/* Add Button */}
                                                                  <button 
                                                                      onClick={() => handleSelectProduct(product, currentQty)}
-                                                                     className={`h-8 md:h-9 px-3 md:px-4 rounded-lg font-bold text-xs md:text-sm shadow-sm transition-transform active:scale-95 flex items-center gap-1.5 whitespace-nowrap ${
+                                                                     className={`h-9 px-4 rounded-lg font-bold text-sm shadow-sm transition-transform active:scale-95 flex items-center gap-1.5 whitespace-nowrap ${
                                                                          replacingItemId ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-black text-white hover:bg-gray-800'
                                                                      }`}
                                                                  >
-                                                                     {replacingItemId ? <RefreshCw className="h-3 w-3 md:h-3.5 md:w-3.5" /> : <Plus className="h-3 w-3 md:h-3.5 md:w-3.5" />}
+                                                                     {replacingItemId ? <RefreshCw className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
                                                                      <span className="hidden md:inline">{replacingItemId ? '更換' : '加入'}</span>
                                                                      <span className="md:hidden">加入</span>
                                                                  </button>
