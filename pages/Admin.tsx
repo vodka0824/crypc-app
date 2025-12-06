@@ -4,7 +4,8 @@ import React, { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useProducts } from '../contexts/ProductContext';
 import { Category, Product, ProductSpecs } from '../types';
-import { Upload, Database, Plus, Search, X, DollarSign, Loader2, Package, FileText, Settings } from 'lucide-react';
+import { Upload, Database, Plus, Search, X, DollarSign, Loader2, Package, Settings } from 'lucide-react';
+import { filterProducts } from '../utils/searchHelper';
 
 import AdminHeader from '../components/admin/AdminHeader';
 import FilterControls from '../components/admin/FilterControls';
@@ -55,38 +56,9 @@ const Admin: React.FC = () => {
   const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
   const [priceUpdateInput, setPriceUpdateInput] = useState('');
 
+  // Use shared logic for filtering
   const filteredProducts = useMemo(() => {
-    return products.filter(p => {
-      const matchesCategory = filterCategory === 'All' || p.category === filterCategory;
-      
-      let matchesSearch = true;
-      const queryRaw = searchQuery.trim().toLowerCase();
-
-      if (queryRaw) {
-        // Combine all searchable text fields including specs
-        const productText = [
-          p.name,
-          p.id,
-          p.category,
-          ...Object.values(p.specDetails || {})
-        ].join(' ').toLowerCase();
-        
-        // Advanced Logic: 
-        // 1. Split by '|' for OR groups (e.g. "Intel i7 | AMD R7")
-        // 2. Inside each group, split by space for AND requirements (e.g. "Intel" AND "i7")
-        const orGroups = queryRaw.split('|');
-
-        matchesSearch = orGroups.some(group => {
-            const andTerms = group.trim().split(/\s+/).filter(t => t);
-            if (andTerms.length === 0) return false;
-            
-            // The product must contain ALL terms in this specific group
-            return andTerms.every(term => productText.includes(term));
-        });
-      }
-
-      return matchesCategory && matchesSearch;
-    });
+    return filterProducts(products, searchQuery, filterCategory, {});
   }, [products, filterCategory, searchQuery]);
 
   const selectedProductsList = useMemo(() => products.filter(p => selectedIds.has(p.id)), [products, selectedIds]);
