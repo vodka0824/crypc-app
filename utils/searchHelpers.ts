@@ -27,7 +27,7 @@ export const filterProducts = (
   category: string | null = 'All', // Can be 'All', specific Category, or null (ignore)
   activeFilters: Record<string, string[]> = {}
 ): Product[] => {
-  return products.filter(product => {
+  return products.filter((product: Product) => {
     // 1. Category Filter
     if (category && category !== 'All' && product.category !== category) {
       return false;
@@ -59,8 +59,8 @@ export const filterProducts = (
         if (!productValue) return false;
         
         // Handle comma-separated values in product specs (e.g. "LGA1700, AM5")
-        const values = productValue.split(',').map(s => s.trim());
-        return values.some(v => selectedValues.includes(v));
+        const values = productValue.split(',').map((s: string) => s.trim());
+        return values.some((v: string) => selectedValues.includes(v));
       });
       
       if (!matchesFilters) return false;
@@ -89,10 +89,10 @@ export const getSmartOptions = (
     const relevantProducts = filterProducts(allProducts, searchQuery, category, otherFilters);
 
     const values = new Set<string>();
-    relevantProducts.forEach(p => {
+    relevantProducts.forEach((p: Product) => {
         if (p.specDetails?.[targetFilterKey]) {
             // Split multi-value specs for option generation
-            p.specDetails[targetFilterKey]!.split(',').forEach(v => values.add(v.trim()));
+            p.specDetails[targetFilterKey]!.split(',').forEach((v: string) => values.add(v.trim()));
         }
     });
 
