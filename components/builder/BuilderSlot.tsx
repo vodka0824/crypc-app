@@ -2,7 +2,6 @@
 import React from 'react';
 import { Category, BuilderItem, Product, BuildState } from '../../types';
 import { Plus, Eraser, ChevronRight, AlertTriangle, Minus, RefreshCw, Trash2, ChevronDown } from 'lucide-react';
-import { checkCompatibility } from '../../utils/builderLogic';
 import SwipeableRow from './SwipeableRow';
 
 interface BuilderSlotProps {
@@ -11,6 +10,7 @@ interface BuilderSlotProps {
     label: string;
     items: BuilderItem[];
     buildState: BuildState;
+    compatibilityMap: Record<string, string | null>; // Changed from checkCompatibility function to pre-calculated map
     onOpenSelection: (category: Category) => void;
     onClearCategory: (category: Category) => void;
     onRemoveItem: (id: string) => void;
@@ -25,6 +25,7 @@ const BuilderSlot: React.FC<BuilderSlotProps> = ({
     label,
     items,
     buildState,
+    compatibilityMap,
     onOpenSelection,
     onClearCategory,
     onRemoveItem,
@@ -75,7 +76,7 @@ const BuilderSlot: React.FC<BuilderSlotProps> = ({
             {hasItems && (
                 <div className="flex flex-col">
                     {items.map((item) => {
-                        const errorMsg = checkCompatibility(item, buildState);
+                        const errorMsg = compatibilityMap[item.id]; // Read from Map
                         const ItemContent = (
                             <div className="flex flex-col md:flex-row md:items-center px-3 py-3 md:px-4 border-b border-gray-50 last:border-0 hover:bg-gray-50/80 transition-all relative group/item cursor-pointer">
                                 <div className="flex-1 min-w-0 pr-8 md:pr-0">
@@ -155,4 +156,3 @@ const BuilderSlot: React.FC<BuilderSlotProps> = ({
 };
 
 export default React.memo(BuilderSlot);
-
