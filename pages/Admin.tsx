@@ -61,8 +61,8 @@ const Admin: React.FC = () => {
     return filterProducts(products, searchQuery, filterCategory, {});
   }, [products, filterCategory, searchQuery]);
 
-  const selectedProductsList = useMemo(() => products.filter(p => selectedIds.has(p.id)), [products, selectedIds]);
-  const selectedCategories = useMemo(() => Array.from(new Set(selectedProductsList.map(p => p.category))), [selectedProductsList]);
+  const selectedProductsList = useMemo(() => products.filter((p: Product) => selectedIds.has(p.id)), [products, selectedIds]);
+  const selectedCategories = useMemo(() => Array.from(new Set(selectedProductsList.map((p: Product) => p.category))), [selectedProductsList]);
   const isSameCategory = selectedCategories.length === 1;
   const commonCategory = isSameCategory ? selectedCategories[0] : null;
 
@@ -168,7 +168,7 @@ const Admin: React.FC = () => {
     if (selectedIds.size === filteredProducts.length && filteredProducts.length > 0) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(filteredProducts.map(p => p.id)));
+      setSelectedIds(new Set(filteredProducts.map((p: Product) => p.id)));
     }
   };
 
