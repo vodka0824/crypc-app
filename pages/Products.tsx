@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Category, Product, ProductSpecs } from '../types';
-import { Filter, ShoppingBag, X, ChevronDown, ChevronRight, SlidersHorizontal, Check, Home, Cpu, CircuitBoard, HardDrive, Monitor, Disc, Box, Wind, Search, MemoryStick, Gamepad2, Droplets, Mouse, Zap } from 'lucide-react';
+import { Filter, ShoppingBag, X, ChevronDown, ChevronRight, SlidersHorizontal, Check, Home, Cpu, CircuitBoard, HardDrive, Monitor, Disc, Box, Wind, Search, MemoryStick, Gamepad2, Droplets, Zap, Mouse } from 'lucide-react';
 import { categoryFilters, categoryDisplayMap } from '../data/mockData';
 import { useProducts } from '../contexts/ProductContext';
 import { filterProducts, getSmartOptions } from '../utils/searchHelper';
@@ -32,7 +32,6 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
   };
 
   const filteredProducts = useMemo(() => {
-    // Pass 'All' as null if selectedCategory is 'All' or just pass the string, our helper handles it.
     const result = filterProducts(allProducts, searchQuery, selectedCategory, activeFilters);
 
     switch (sortOption) {
@@ -106,7 +105,7 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
         <div className="space-y-3 select-none">
             <div 
                 onClick={() => handleCategorySelect('All')}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-colors ${selectedCategory === 'All' ? 'bg-black text-white font-bold shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all duration-200 ${selectedCategory === 'All' ? 'bg-black text-white font-bold shadow-lg shadow-gray-300' : 'text-gray-600 hover:bg-gray-100'}`}
             >
                 <span className="flex-1 text-base">全部商品</span>
             </div>
@@ -120,7 +119,7 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
                     <div key={cat} className="space-y-1">
                         <div 
                             onClick={() => handleCategorySelect(cat)}
-                            className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-colors group ${isCatActive ? 'bg-black text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}
+                            className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all duration-200 group ${isCatActive ? 'bg-black text-white shadow-lg shadow-gray-300' : 'text-gray-600 hover:bg-gray-100'}`}
                         >
                             {isCatExpanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
                             <span className={`flex-1 text-base font-medium ${isCatActive ? 'text-white' : 'text-gray-900'}`}>
@@ -129,7 +128,7 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
                         </div>
 
                         {isCatExpanded && filters && (
-                            <div className="pl-6 space-y-2 border-l-2 border-gray-100 ml-4 mt-2 mb-2">
+                            <div className="pl-6 space-y-2 border-l-2 border-gray-100 ml-4 mt-2 mb-2 animate-fade-in">
                                 {filters.map(filter => {
                                     const options = getSmartOptions(allProducts, cat, filter.key, searchQuery, activeFilters);
                                     if (options.length === 0) return null;
@@ -140,7 +139,7 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
                                         <div key={filter.key}>
                                             <div 
                                                 onClick={() => toggleNode(`${cat}-${filter.key}`)}
-                                                className="flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer text-sm font-semibold text-gray-700 hover:text-black hover:bg-gray-50 transition-colors"
+                                                className="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer text-sm font-semibold text-gray-700 hover:text-black hover:bg-gray-50 transition-colors"
                                             >
                                                  {isFilterExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                                                  <span>{filter.label}</span>
@@ -157,7 +156,7 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
                                                                 className="flex items-center gap-2 py-1.5 cursor-pointer group"
                                                             >
                                                                 <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${
-                                                                    isChecked ? 'bg-black border-black' : 'border-gray-300 bg-white group-hover:border-gray-400'
+                                                                    isChecked ? 'bg-black border-black shadow-sm' : 'border-gray-300 bg-white group-hover:border-gray-400'
                                                                 }`}>
                                                                     {isChecked && <Check className="h-3.5 w-3.5 text-white" />}
                                                                 </div>
@@ -246,7 +245,7 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
                     placeholder="搜尋商品..." 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-10 py-3 bg-white border border-gray-300 rounded-xl leading-tight focus:outline-none focus:border-black focus:ring-1 focus:ring-black shadow-sm text-sm"
+                    className="w-full pl-9 pr-10 py-3 bg-white border border-gray-300 rounded-xl leading-tight focus:outline-none focus:border-black focus:ring-1 focus:ring-black shadow-sm text-sm transition-all"
                 />
                 {searchQuery && (
                   <button 
@@ -262,7 +261,7 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
                 <select 
                     value={sortOption} 
                     onChange={(e) => setSortOption(e.target.value)}
-                    className="w-full md:w-auto appearance-none bg-white border border-gray-300 text-gray-700 py-3 pl-5 pr-12 rounded-xl leading-tight focus:outline-none focus:border-black focus:ring-1 focus:ring-black cursor-pointer shadow-sm text-sm font-medium"
+                    className="w-full md:w-auto appearance-none bg-white border border-gray-300 text-gray-700 py-3 pl-5 pr-12 rounded-xl leading-tight focus:outline-none focus:border-black focus:ring-1 focus:ring-black cursor-pointer shadow-sm text-sm font-medium transition-all"
                 >
                     <option value="default">預設排序</option>
                     <option value="price-asc">價格: 低到高</option>
@@ -275,7 +274,7 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
             </div>
 
             <button 
-              className="lg:hidden flex items-center justify-center gap-2 px-5 py-3 bg-black text-white rounded-xl flex-shrink-0 font-bold w-full md:w-auto"
+              className="lg:hidden flex items-center justify-center gap-2 px-5 py-3 bg-black text-white rounded-xl flex-shrink-0 font-bold w-full md:w-auto shadow-lg shadow-gray-300"
               onClick={() => setMobileFiltersOpen(true)}
             >
               <SlidersHorizontal className="h-5 w-5" /> 規格篩選
@@ -298,7 +297,7 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
              {mobileFiltersOpen && (
                 <button 
                   onClick={() => setMobileFiltersOpen(false)}
-                  className="w-full mt-8 bg-black text-white py-4 rounded-xl font-bold text-lg"
+                  className="w-full mt-8 bg-black text-white py-4 rounded-xl font-bold text-lg shadow-lg"
                 >
                   查看 {filteredProducts.length} 個商品
                 </button>
@@ -315,10 +314,10 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
                 return (
                   <div 
                     key={product.id} 
-                    className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group border border-gray-100 flex flex-col animate-fade-in-up cursor-pointer"
+                    className="bg-white rounded-[2rem] overflow-hidden shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] hover:shadow-[0_12px_32px_-8px_rgba(0,0,0,0.15)] hover:-translate-y-1.5 transition-all duration-300 group border border-gray-100/50 flex flex-col animate-fade-in-up cursor-pointer"
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
-                    <div className="relative h-64 bg-gray-50 p-8 flex items-center justify-center overflow-hidden group/image">
+                    <div className="relative h-64 bg-gray-50/50 p-8 flex items-center justify-center overflow-hidden group/image">
                       {product.image ? (
                          <>
                             <div className="absolute inset-0 flex items-center justify-center text-gray-200">
@@ -327,7 +326,7 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
                             <img 
                                 src={product.image} 
                                 alt={product.name} 
-                                className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500 relative z-10 bg-white"
+                                className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500 relative z-10 mix-blend-multiply"
                                 loading="lazy"
                                 onError={(e) => {
                                     e.currentTarget.style.display = 'none';
@@ -342,12 +341,12 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
                       )}
                       
                       {product.specDetails?.brand && (
-                        <span className="absolute top-5 left-5 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm border border-gray-100 z-20">
+                        <span className="absolute top-5 left-5 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm border border-gray-100 z-20">
                           {product.specDetails.brand}
                         </span>
                       )}
 
-                      <div className="absolute inset-0 bg-black/85 opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex items-center justify-center p-8 text-white backdrop-blur-sm z-30">
+                      <div className="absolute inset-0 bg-black/80 opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex items-center justify-center p-8 text-white backdrop-blur-sm z-30">
                         <div className="w-full space-y-3">
                             <h4 className="font-bold border-b border-gray-600 pb-2 mb-3 text-lg">{product.name}</h4>
                             {Object.entries(product.specDetails || {}).map(([key, value]) => (
@@ -362,22 +361,22 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
                     </div>
                     <div className="p-6 flex-1 flex flex-col">
                       <div className="flex justify-between items-start mb-3">
-                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{product.category}</span>
-                        {product.specDetails?.socket && <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded">{product.specDetails.socket}</span>}
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{product.category}</span>
+                        {product.specDetails?.socket && <span className="text-[10px] font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded-md">{product.specDetails.socket}</span>}
                       </div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-4 leading-snug">{product.name}</h3>
+                      <h3 className="text-lg font-bold text-gray-900 mb-4 leading-snug line-clamp-2">{product.name}</h3>
                       
                       <div className="flex-grow mb-6">
                         {product.specDetails && Object.keys(product.specDetails).length > 0 ? (
                           <div className="space-y-2">
                             {Object.entries(product.specDetails)
                               .filter(([key]) => key !== 'brand')
-                              .slice(0, 4)
+                              .slice(0, 3)
                               .map(([key, value]) => (
                                 <div key={key} className="flex items-center text-sm">
-                                  <span className="w-2 h-2 rounded-full bg-gray-200 mr-3 flex-shrink-0"></span>
-                                  <span className="text-gray-400 capitalize w-20 flex-shrink-0 font-medium">{key}</span>
-                                  <span className="text-gray-700 font-bold truncate">{value}</span>
+                                  <span className="w-1.5 h-1.5 rounded-full bg-gray-300 mr-3 flex-shrink-0"></span>
+                                  <span className="text-gray-400 capitalize w-20 flex-shrink-0 font-medium text-xs">{key}</span>
+                                  <span className="text-gray-700 font-bold truncate text-xs">{value}</span>
                                 </div>
                               ))}
                           </div>
@@ -387,16 +386,16 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
                       </div>
                       
                       <div className="flex items-center justify-between mt-auto pt-5 border-t border-gray-50">
-                        <span className="text-2xl font-bold text-gray-900">NT$ {product.price.toLocaleString()}</span>
+                        <span className="text-2xl font-bold text-gray-900 tracking-tight">NT$ {product.price.toLocaleString()}</span>
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
                             addToCart(product);
                           }}
-                          className="px-5 py-3 bg-black text-white rounded-xl hover:bg-gray-800 active:scale-95 transition-all shadow-lg shadow-gray-200 flex gap-2 items-center"
+                          className="px-5 py-3 bg-accent text-white rounded-xl hover:bg-blue-600 active:scale-95 transition-all shadow-lg shadow-blue-200 flex gap-2 items-center font-bold"
                         >
                           <ShoppingBag className="h-5 w-5" />
-                          <span className="text-base font-bold">加入</span>
+                          加入
                         </button>
                       </div>
                     </div>
@@ -404,7 +403,7 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
                 );
               })
             ) : (
-              <div className="col-span-full py-24 text-center text-gray-400 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+              <div className="col-span-full py-24 text-center text-gray-400 bg-gray-50 rounded-[2rem] border border-dashed border-gray-200">
                 <Filter className="h-12 w-12 mx-auto mb-4 opacity-20" />
                 <p className="text-lg">沒有符合條件的商品，請嘗試調整篩選器。</p>
                 <button 
