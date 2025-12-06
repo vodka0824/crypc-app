@@ -27,8 +27,9 @@ const BatchActionsToolbar: React.FC<BatchActionsToolbarProps> = ({
     return null;
   }
 
+  // Added 'md:hidden' class to hide on desktop
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-black text-white px-4 md:px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 md:gap-6 z-50 animate-fade-in-up w-[92%] md:w-auto overflow-x-auto hide-scrollbar max-w-full safe-area-bottom">
+    <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-black text-white px-4 md:px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 md:gap-6 z-50 animate-fade-in-up w-[92%] md:w-auto overflow-x-auto hide-scrollbar max-w-full safe-area-bottom">
       <span className="font-bold text-sm whitespace-nowrap flex-shrink-0">已選 {selectedIds.size}</span>
       <div className="h-6 w-px bg-gray-700 flex-shrink-0"></div>
       <div className="flex gap-2 flex-nowrap">
