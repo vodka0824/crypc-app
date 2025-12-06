@@ -619,18 +619,20 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                     ) : (
                         <div 
                             onClick={() => handleOpenSelection(slot.category)} 
-                            className="flex flex-col md:flex-row md:items-center justify-between p-3 md:p-4 transition-all duration-200 gap-4 cursor-pointer hover:bg-gray-50/80 active:bg-gray-100"
+                            className="flex flex-row items-center justify-between p-3 md:p-4 transition-all duration-200 gap-4 cursor-pointer hover:bg-gray-50/80 active:bg-gray-100"
                         >
-                            <div className="flex items-center gap-4 group-hover:opacity-100 transition-opacity flex-1">
-                                <div className="p-2 rounded-md bg-gray-100 text-gray-500 group-hover:text-gray-800 transition-colors">
-                                    <slot.icon className="h-5 w-5 md:h-6 md:w-6" />
+                            <div className="flex items-center gap-3 opacity-60 group-hover:opacity-100 transition-opacity flex-1">
+                                <div className="p-2 rounded-md bg-gray-100 text-gray-400 group-hover:text-gray-600 transition-colors">
+                                    <slot.icon className="h-5 w-5" />
                                 </div>
-                                <div className="flex flex-col">
-                                    <span className="font-bold text-sm md:text-lg text-gray-700 group-hover:text-black transition-colors">{slot.label}</span>
-                                    <span className="text-xs text-gray-500 font-medium hidden md:block">點擊選擇商品</span>
+                                <div className="flex flex-col justify-center">
+                                    <span className="font-bold text-sm md:text-lg text-gray-500 group-hover:text-black transition-colors">{slot.label}</span>
+                                    <span className="text-xs text-gray-400 font-medium hidden md:block">點擊選擇商品</span>
                                 </div>
                             </div>
-                            <div className="md:hidden text-xs text-gray-400 flex items-center gap-1 font-medium justify-end"><span>選擇</span> <ChevronRight className="h-4 w-4" /></div>
+                            <div className="text-xs text-gray-300 flex items-center gap-1 font-medium justify-end">
+                                <span className="md:hidden">選擇</span> <ChevronRight className="h-4 w-4" />
+                            </div>
                         </div>
                     )}
 
