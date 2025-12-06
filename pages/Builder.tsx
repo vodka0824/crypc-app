@@ -1,7 +1,7 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Category, Product, BuildState, BuilderItem, ProductSpecs, BuildTemplate, CartItem } from '../types';
-import { Plus, Check, RotateCcw, X, ChevronDown, ChevronRight, Cpu, Minus, Trash2, AlertTriangle, SlidersHorizontal, ListFilter, Eraser, Monitor, Disc, Save, FolderOpen, Search, RefreshCw, Sparkles, Loader2, Bot, Share2, Copy, StickyNote, Box, Fan, Wind, Zap, ShoppingCart, CreditCard, Banknote, CircuitBoard, HardDrive, Gamepad2, Droplets, Mouse, MemoryStick, Clock, ArrowRight, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { Plus, Check, RotateCcw, X, ChevronDown, ChevronRight, Cpu, Minus, Trash2, AlertTriangle, SlidersHorizontal, ListFilter, Eraser, Monitor, Disc, Save, FolderOpen, Search, RefreshCw, Sparkles, Loader2, Bot, Share2, Copy, StickyNote, Box, Fan, Wind, Zap, ShoppingCart, CreditCard, Banknote, CircuitBoard, HardDrive, Gamepad2, Droplets, Mouse, MemoryStick, Clock, ArrowRight, ArrowUp, ArrowDown, ArrowUpDown, MoreHorizontal, MessageSquare, Send } from 'lucide-react';
 import { categoryFilters, categoryDisplayMap } from '../data/mockData';
 import { useProducts } from '../contexts/ProductContext';
 import { generateSmartBuild } from '../services/geminiService';
@@ -31,6 +31,98 @@ const usagePresets = [
     { label: '影音創作', value: '影片剪輯、3D 建模渲染、圖形設計' },
     { label: '程式開發', value: '軟體開發、虛擬機運行、多工處理' }
 ];
+
+// Helper for Haptic Feedback
+const triggerHaptic = () => {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(10);
+    }
+};
+
+// --- Mobile Components ---
+
+// 1. Step Progress Bar
+const MobileStepProgress = ({ cartItems }: { cartItems: CartItem[] }) => {
+    const hasCategory = (cats: Category[]) => cats.some(c => cartItems.some(i => i.category === c));
+    
+    const steps = [
+        { label: '核心', active: hasCategory([Category.CPU, Category.MB, Category.RAM]) },
+        { label: '顯卡', active: hasCategory([Category.GPU]) },
+        { label: '儲存', active: hasCategory([Category.SSD]) },
+        { label: '機電', active: hasCategory([Category.CASE, Category.PSU, Category.COOLER, Category.AIR_COOLER]) },
+        { label: '周邊', active: hasCategory([Category.MONITOR, Category.SOFTWARE, Category.OTHERS]) },
+    ];
+
+    return (
+        <div className="md:hidden flex justify-between items-center px-4 py-3 bg-white border-b border-gray-100 sticky top-16 z-20 overflow-x-auto hide-scrollbar">
+            {steps.map((step, idx) => (
+                <div key={idx} className="flex flex-col items-center gap-1 min-w-[3rem]">
+                    <div className={`w-2 h-2 rounded-full transition-all duration-500 ${step.active ? 'bg-black scale-125' : 'bg-gray-200'}`} />
+                    <span className={`text-[10px] font-bold ${step.active ? 'text-black' : 'text-gray-400'}`}>{step.label}</span>
+                </div>
+            ))}
+            {/* Progress Line Background */}
+            <div className="absolute top-[19px] left-6 right-6 h-[2px] bg-gray-100 -z-10" />
+            <div className="absolute top-[19px] left-6 h-[2px] bg-black -z-10 transition-all duration-500" 
+                 style={{ width: `${(steps.filter(s => s.active).length / steps.length) * 85}%` }} />
+        </div>
+    );
+};
+
+// 2. Swipeable Row Component
+const SwipeableRow = ({ children, onDelete, onReplace }: { children: React.ReactNode, onDelete: () => void, onReplace: () => void }) => {
+    const [offsetX, setOffsetX] = useState(0);
+    const startX = useRef(0);
+    
+    const handleTouchStart = (e: React.TouchEvent) => {
+        startX.current = e.touches[0].clientX;
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        const currentX = e.touches[0].clientX;
+        const diff = currentX - startX.current;
+        // Limit swipe distance
+        if (diff > -100 && diff < 100) {
+            setOffsetX(diff);
+        }
+    };
+
+    const handleTouchEnd = () => {
+        if (offsetX < -80) {
+            triggerHaptic();
+            onDelete();
+        } else if (offsetX > 80) {
+            triggerHaptic();
+            onReplace();
+        }
+        setOffsetX(0);
+    };
+
+    return (
+        <div className="relative overflow-hidden rounded-xl">
+            {/* Background Actions */}
+            <div className="absolute inset-0 flex justify-between items-center px-4 rounded-xl">
+                <div className={`flex items-center gap-1 font-bold text-blue-600 transition-opacity ${offsetX > 40 ? 'opacity-100' : 'opacity-0'}`}>
+                    <RefreshCw className="h-5 w-5" /> 更換
+                </div>
+                <div className={`flex items-center gap-1 font-bold text-red-600 transition-opacity ${offsetX < -40 ? 'opacity-100' : 'opacity-0'}`}>
+                    刪除 <Trash2 className="h-5 w-5" />
+                </div>
+            </div>
+            
+            {/* Foreground Content */}
+            <div 
+                className="bg-white relative transition-transform duration-200 ease-out rounded-xl"
+                style={{ transform: `translateX(${offsetX}px)` }}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+            >
+                {children}
+            </div>
+        </div>
+    );
+};
 
 // --- Installment Logic Helper ---
 const InstallmentCalculator = ({ totalPrice }: { totalPrice: number }) => {
@@ -187,6 +279,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiExplanation, setAiExplanation] = useState<string>('');
   const [qtySelectorId, setQtySelectorId] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [confirmModalState, setConfirmModalState] = useState<{
     isOpen: boolean;
@@ -276,6 +369,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
   };
 
   const handleSelectProduct = (product: Product, quantityToAdd: number) => {
+    triggerHaptic();
     setCartItems(prev => {
         let newCart = [...prev];
         if (replacingItemId) {
@@ -287,14 +381,9 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                 ...newCart[existingIndex],
                 quantity: replacingItemId ? quantityToAdd : newCart[existingIndex].quantity + quantityToAdd 
             };
-            // Ensure if user explicitly set quantity (like replacing), we respect it if needed, or add to existing.
-            // For simple "Add" flow with quantity 1 button:
             if (quantityToAdd === 1 && !replacingItemId) {
                  // Keep accumulative logic for simple add
             } else {
-                 // For replace or specific quantity set in modal
-                 // In current flow `quantityToAdd` is usually currentQty from modal state.
-                 // If replacing, we just set it. If adding, we accumulate.
                  if (replacingItemId) newCart[existingIndex].quantity = quantityToAdd;
             }
         } else {
@@ -310,6 +399,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
   };
 
   const handleRemoveProduct = (productId: string) => {
+    triggerHaptic();
     setCartItems(prev => prev.filter(item => item.id !== productId));
   };
 
@@ -327,6 +417,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
   };
 
   const handleQuantityChange = (productId: string, delta: number) => {
+    triggerHaptic();
     setCartItems(prev => prev.map(item => {
         if (item.id === productId) {
             const newQty = Math.max(1, item.quantity + delta);
@@ -420,6 +511,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
       setTemplateMode(mode);
       setNewTemplateName('');
       setIsTemplateModalOpen(true);
+      setMobileMenuOpen(false);
   };
 
   const handleSaveTemplate = () => {
@@ -588,7 +680,10 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
         {`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } } .animate-slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }`}
       </style>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative">
+      {/* Mobile Step Progress - Sticky Top */}
+      <MobileStepProgress cartItems={cartItems} />
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative mt-4 md:mt-0">
         <div className="lg:col-span-8 flex flex-col gap-3 md:gap-5 order-2 lg:order-1">
            <div className="md:hidden flex justify-between items-center mb-2">
                <h1 className="text-xl font-bold text-gray-900">組裝估價</h1>
@@ -640,14 +735,8 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                         <div className="flex flex-col">
                             {items.map((item) => {
                                 const errorMsg = checkCompatibility(item, build);
-                                return (
-                                    <div 
-                                      key={item.uniqueId} 
-                                      onClick={() => handleStartReplace(item)}
-                                      className="flex flex-col md:flex-row md:items-center px-3 py-3 md:px-4 border-b border-gray-50 last:border-0 hover:bg-gray-50/80 transition-all relative group/item cursor-pointer"
-                                      title="點擊更換商品"
-                                    >
-                                        
+                                const ItemContent = (
+                                    <div className="flex flex-col md:flex-row md:items-center px-3 py-3 md:px-4 border-b border-gray-50 last:border-0 hover:bg-gray-50/80 transition-all relative group/item cursor-pointer">
                                         <div className="flex-1 min-w-0 pr-8 md:pr-0">
                                             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                                                 <span className="font-bold text-sm md:text-lg text-gray-900 leading-tight">{item.name}</span>
@@ -697,6 +786,20 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                                         </div>
                                     </div>
                                 );
+
+                                // Mobile Swipe Wrapper
+                                return (
+                                    <div key={item.uniqueId}>
+                                        <div className="md:hidden">
+                                            <SwipeableRow onDelete={() => handleRemoveProduct(item.id)} onReplace={() => handleStartReplace(item)}>
+                                                {ItemContent}
+                                            </SwipeableRow>
+                                        </div>
+                                        <div className="hidden md:block">
+                                            {ItemContent}
+                                        </div>
+                                    </div>
+                                )
                             })}
                         </div>
                     )}
@@ -773,21 +876,48 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
         {confirmModalState.message}
       </ConfirmationModal>
 
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-[0_-4px_16px_rgba(0,0,0,0.1)] p-3 safe-area-bottom">
-         <div className="flex items-center gap-2">
-             <div className="flex-1 min-w-0">
-                 <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-0.5">總金額</div>
-                 <div className="text-xl font-bold text-black leading-none truncate">${totalPrice.toLocaleString()}</div>
+      {/* Redesigned Mobile Sticky Bottom Bar */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-[0_-4px_16px_rgba(0,0,0,0.1)] px-4 py-3 safe-area-bottom">
+         <div className="flex items-center gap-3">
+             <div className="flex-1 min-w-0 flex flex-col">
+                 <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">預估總金額</div>
+                 <div className="text-2xl font-bold text-black leading-none truncate tracking-tight">${totalPrice.toLocaleString()}</div>
              </div>
-             <button onClick={handleShareBuild} className="p-3 bg-gray-100 text-gray-600 rounded-xl active:scale-95 transition-transform" title="複製清單"><Copy className="h-5 w-5" /></button>
-             <button onClick={() => setIsAiModalOpen(true)} className="px-3 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold flex items-center gap-1 shadow-md active:scale-95 transition-transform"><Sparkles className="h-4 w-4" /> <span className="text-sm">AI</span></button>
-             <div className="flex items-center bg-gray-100 p-1 rounded-xl">
-                <button onClick={() => openTemplateModal('load')} className="p-2.5 rounded-lg text-gray-600 active:bg-white active:shadow-sm transition-all" title="載入範本"><FolderOpen className="h-5 w-5" /></button>
-                <div className="w-px h-4 bg-gray-300 mx-1"></div>
-                <button onClick={() => openTemplateModal('save')} className="p-2.5 rounded-lg text-gray-600 active:bg-white active:shadow-sm transition-all" title="儲存範本"><Save className="h-5 w-5" /></button>
-             </div>
+             
+             <button onClick={handleShareBuild} className="h-12 px-6 bg-black text-white rounded-xl font-bold shadow-lg shadow-gray-300 active:scale-95 transition-transform flex items-center justify-center gap-2">
+                 <Check className="h-5 w-5" /> 結帳
+             </button>
+
+             {/* More Menu Trigger */}
+             <button onClick={() => setMobileMenuOpen(true)} className="h-12 w-12 flex items-center justify-center bg-gray-100 text-gray-600 rounded-xl active:bg-gray-200 active:scale-95 transition-all">
+                 <MoreHorizontal className="h-6 w-6" />
+             </button>
          </div>
       </div>
+
+      {/* Mobile Menu Bottom Sheet */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center md:hidden">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
+            <div className="relative bg-white w-full rounded-t-3xl p-6 shadow-2xl animate-slide-up flex flex-col gap-2">
+                <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4" />
+                <button onClick={() => { setMobileMenuOpen(false); setIsAiModalOpen(true); }} className="flex items-center gap-3 w-full p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl font-bold text-lg">
+                    <div className="p-2 bg-purple-100 text-purple-600 rounded-lg"><Sparkles className="h-5 w-5" /></div> AI 智能配單
+                </button>
+                <div className="flex gap-2">
+                    <button onClick={() => openTemplateModal('load')} className="flex-1 flex items-center justify-center gap-2 p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl font-bold text-gray-700">
+                        <FolderOpen className="h-5 w-5" /> 載入範本
+                    </button>
+                    <button onClick={() => openTemplateModal('save')} className="flex-1 flex items-center justify-center gap-2 p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl font-bold text-gray-700">
+                        <Save className="h-5 w-5" /> 儲存範本
+                    </button>
+                </div>
+                <button onClick={resetBuild} className="w-full p-4 mt-2 text-red-600 font-bold border border-red-100 rounded-2xl flex items-center justify-center gap-2 hover:bg-red-50">
+                    <Trash2 className="h-5 w-5" /> 清空重選
+                </button>
+            </div>
+        </div>
+      )}
       
       {qtySelectorId && (
         <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setQtySelectorId(null)}>
@@ -807,118 +937,131 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
         </div>
       )}
 
+      {/* AI Chat Modal (Redesigned) */}
       {isAiModalOpen && (
-        <div className="fixed inset-0 z-[75] flex items-end sm:items-center justify-center p-4 sm:p-6">
+        <div className="fixed inset-0 z-[75] flex items-end md:items-center justify-center sm:p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-md transition-opacity" onClick={() => setIsAiModalOpen(false)} />
             
-            <div className="relative bg-white w-full max-w-lg max-h-[85vh] sm:max-h-[90vh] rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col animate-slide-up sm:animate-fade-in overflow-hidden">
-                
-                {/* Header - Fixed */}
-                <div className="flex justify-between items-center px-6 py-5 border-b border-gray-100 bg-white z-10">
+            <div className="relative bg-[#F5F5F7] w-full md:max-w-lg h-[85vh] md:h-[80vh] rounded-t-3xl md:rounded-3xl shadow-2xl flex flex-col animate-slide-up md:animate-fade-in overflow-hidden">
+                {/* Chat Header */}
+                <div className="bg-white px-6 py-4 flex items-center justify-between border-b border-gray-100 shadow-sm z-10">
                     <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-black rounded-xl text-white shadow-md shadow-black/20">
-                             <Bot className="h-5 w-5" />
+                        <div className="p-2 bg-black rounded-full text-white">
+                            <Bot className="h-5 w-5" />
                         </div>
                         <div>
-                             <h2 className="text-xl font-bold text-gray-900 leading-tight">AI 智能配單</h2>
-                             {!aiExplanation && <p className="text-xs text-gray-500 font-medium">輸入預算與用途，自動生成清單</p>}
+                            <h3 className="font-bold text-gray-900">CryPC AI 顧問</h3>
+                            <p className="text-[10px] text-green-500 font-bold flex items-center gap-1"><span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" /> 線上</p>
                         </div>
                     </div>
-                    <button onClick={() => setIsAiModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><X className="h-5 w-5 text-gray-500" /></button>
+                    <button onClick={() => setIsAiModalOpen(false)} className="p-2 bg-gray-50 rounded-full text-gray-500"><X className="h-5 w-5" /></button>
                 </div>
-                
-                {/* Content - Scrollable */}
-                <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-                    {!aiExplanation ? (
-                        <div className="space-y-6">
-                             <div>
-                                 <label className="block text-sm font-bold text-gray-700 mb-2">預算上限 (NT$)</label>
-                                 <div className="relative group">
-                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold transition-colors group-focus-within:text-black">$</span>
-                                     <input 
-                                         type="number" 
-                                         value={aiBudget}
-                                         onChange={(e) => setAiBudget(e.target.value)}
-                                         className="w-full pl-8 pr-4 py-4 bg-gray-50 border-2 border-transparent focus:bg-white focus:border-black focus:ring-0 rounded-2xl font-bold text-xl transition-all outline-none"
-                                         placeholder="30000"
-                                     />
-                                 </div>
-                             </div>
-                             <div>
-                                 <label className="block text-sm font-bold text-gray-700 mb-2">主要用途</label>
-                                 <div className="grid grid-cols-2 gap-3 mb-3">
-                                     {usagePresets.map(preset => (
-                                         <button
-                                             key={preset.label}
-                                             onClick={() => setAiUsage(preset.value)}
-                                             className={`p-3 text-left rounded-xl border-2 transition-all ${aiUsage === preset.value ? 'border-black bg-black text-white' : 'border-gray-100 bg-white hover:border-gray-300 text-gray-600'}`}
-                                         >
-                                             <div className="font-bold text-xs mb-0.5">{preset.label}</div>
-                                             <div className={`text-[10px] ${aiUsage === preset.value ? 'text-gray-300' : 'text-gray-400'} line-clamp-1`}>{preset.value}</div>
-                                         </button>
-                                     ))}
-                                 </div>
-                                 <textarea 
-                                     value={aiUsage}
-                                     onChange={(e) => setAiUsage(e.target.value)}
-                                     className="w-full p-4 bg-gray-50 border-2 border-transparent focus:bg-white focus:border-black focus:ring-0 rounded-2xl text-sm transition-all resize-none font-medium leading-relaxed outline-none"
-                                     rows={3}
-                                     placeholder="或手動輸入詳細需求..."
-                                 />
-                             </div>
+
+                {/* Chat Area */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    {/* Bot Intro */}
+                    <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center text-white flex-shrink-0 mt-1"><Bot className="h-4 w-4" /></div>
+                        <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm max-w-[85%] text-sm leading-relaxed text-gray-700 border border-gray-100">
+                            嗨！我是您的 AI 組裝顧問。<br/>請告訴我您的<b>預算</b>以及<b>主要用途</b>（例如：玩黑神話悟空、影片剪輯...），我將為您推薦最適合的配置。
                         </div>
-                    ) : (
-                        <div className="space-y-6 animate-fade-in">
-                             <div className="bg-green-50/50 p-5 rounded-2xl border border-green-100">
-                                 <div className="flex items-start gap-4">
-                                     <div className="p-2 bg-green-100 rounded-full text-green-600 flex-shrink-0 mt-0.5">
-                                        <Check className="h-5 w-5" />
-                                     </div>
-                                     <div>
-                                         <h3 className="font-bold text-green-800 text-lg mb-2">配單完成！</h3>
-                                         <div className="text-green-800/80 text-sm leading-7 whitespace-pre-line font-medium">
-                                            {aiExplanation}
-                                         </div>
-                                     </div>
-                                 </div>
-                             </div>
+                    </div>
+
+                    {/* User Input Display (if any) */}
+                    {(aiBudget || aiUsage) && !aiExplanation && (
+                        <div className="flex justify-end">
+                            <div className="bg-blue-600 text-white p-4 rounded-2xl rounded-tr-none shadow-sm max-w-[85%] text-sm">
+                                預算: ${aiBudget || '?'}<br/>用途: {aiUsage || '?'}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Loading Skeleton */}
+                    {isAiLoading && (
+                        <div className="flex items-start gap-3">
+                            <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center text-white flex-shrink-0 mt-1"><Bot className="h-4 w-4" /></div>
+                            <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm w-[70%] border border-gray-100 space-y-2">
+                                <div className="h-4 bg-gray-100 rounded w-3/4 animate-pulse"></div>
+                                <div className="h-4 bg-gray-100 rounded w-1/2 animate-pulse"></div>
+                                <div className="h-4 bg-gray-100 rounded w-5/6 animate-pulse"></div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* AI Result */}
+                    {aiExplanation && (
+                        <div className="flex items-start gap-3 animate-fade-in">
+                            <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center text-white flex-shrink-0 mt-1"><Check className="h-4 w-4" /></div>
+                            <div className="space-y-2 max-w-[85%]">
+                                <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm text-sm leading-relaxed text-gray-700 border border-gray-100 whitespace-pre-line">
+                                    {aiExplanation}
+                                </div>
+                                <div className="flex gap-2">
+                                    <button onClick={() => { setIsAiModalOpen(false); setAiExplanation(''); }} className="px-4 py-2 bg-black text-white text-xs font-bold rounded-xl shadow-md active:scale-95 transition-transform">
+                                        採用此配置
+                                    </button>
+                                    <button onClick={() => setAiExplanation('')} className="px-4 py-2 bg-white text-gray-600 text-xs font-bold rounded-xl border border-gray-200 active:scale-95 transition-transform">
+                                        重新詢問
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
 
-                {/* Footer Actions - Fixed Bottom */}
-                <div className="p-5 border-t border-gray-100 bg-white z-10 flex flex-col gap-3">
-                    {!aiExplanation ? (
-                         <button 
-                             onClick={handleAiAutoBuild}
-                             disabled={isAiLoading || !aiBudget || !aiUsage}
-                             className="w-full py-4 bg-gradient-to-r from-gray-900 to-black text-white rounded-2xl font-bold text-lg shadow-xl shadow-gray-200 hover:shadow-2xl hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
-                         >
-                             {isAiLoading ? (
-                                 <><Loader2 className="h-5 w-5 animate-spin" /> AI 思考中...</>
-                             ) : (
-                                 <><Sparkles className="h-5 w-5 text-yellow-300" /> 生成配置單</>
-                             )}
-                         </button>
-                    ) : (
-                        <div className="flex gap-3">
-                             <button onClick={() => { setIsAiModalOpen(false); setAiExplanation(''); }} className="flex-1 py-3.5 border-2 border-gray-100 text-gray-600 rounded-2xl font-bold hover:bg-gray-50 hover:text-black hover:border-gray-200 transition-all">
-                                 關閉
-                             </button>
-                             <button onClick={() => { setAiExplanation(''); }} className="flex-1 py-3.5 bg-black text-white rounded-2xl font-bold hover:bg-gray-800 transition-all shadow-lg active:scale-95">
-                                 再試一次
-                             </button>
+                {/* Input Area */}
+                {!aiExplanation && (
+                    <div className="p-4 bg-white border-t border-gray-100">
+                        <div className="flex flex-col gap-3">
+                            <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
+                                {usagePresets.map(preset => (
+                                    <button key={preset.label} onClick={() => setAiUsage(preset.value)} className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${aiUsage === preset.value ? 'bg-black text-white border-black' : 'bg-gray-100 text-gray-600 border-transparent'}`}>
+                                        {preset.label}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="flex gap-2">
+                                <input 
+                                    type="number" 
+                                    value={aiBudget}
+                                    onChange={(e) => setAiBudget(e.target.value)}
+                                    placeholder="預算..."
+                                    className="w-1/3 p-3 bg-gray-100 rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-black outline-none transition-all"
+                                />
+                                <input 
+                                    type="text" 
+                                    value={aiUsage}
+                                    onChange={(e) => setAiUsage(e.target.value)}
+                                    placeholder="描述您的需求..."
+                                    className="flex-1 p-3 bg-gray-100 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-black outline-none transition-all"
+                                />
+                                <button 
+                                    onClick={handleAiAutoBuild}
+                                    disabled={isAiLoading || !aiBudget}
+                                    className="p-3 bg-blue-600 text-white rounded-xl active:scale-90 transition-transform disabled:opacity-50 shadow-lg shadow-blue-200"
+                                >
+                                    <Send className="h-5 w-5" />
+                                </button>
+                            </div>
                         </div>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
         </div>
       )}
 
       {isModalOpen && activeCategory && (
-        <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center sm:p-4">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
+        <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center md:p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={() => setIsModalOpen(false)} />
+            
+            {/* Modal Container: Bottom Sheet on Mobile, Centered on Desktop */}
             <div className="relative bg-white w-full md:max-w-7xl h-[92vh] md:h-[90vh] rounded-t-3xl md:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-slide-up md:animate-fade-in">
+                
+                {/* Mobile Drag Handle */}
+                <div className="md:hidden w-full flex justify-center pt-3 pb-1" onClick={() => setIsModalOpen(false)}>
+                    <div className="w-12 h-1.5 bg-gray-200 rounded-full" />
+                </div>
+
                 {/* Header (Desktop) */}
                 <div className="hidden md:flex px-6 py-4 border-b border-gray-100 justify-between items-center bg-white z-10 flex-shrink-0">
                     <div>
@@ -930,37 +1073,44 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                     <button onClick={() => setIsModalOpen(false)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"><X className="h-5 w-5" /></button>
                 </div>
 
-                {/* Header (Mobile) - Redesigned with Search Bar */}
-                <div className="md:hidden p-3 border-b border-gray-100 flex gap-2 items-center bg-white sticky top-0 z-20">
-                    {/* Compact Filter Button */}
-                    <button 
-                        onClick={() => setMobileFiltersOpen(true)}
-                        className={`p-2.5 rounded-xl border transition-colors flex-shrink-0 ${Object.keys(activeFilters).length > 0 ? 'bg-black text-white border-black' : 'bg-gray-100 text-gray-600 border-transparent active:bg-gray-200'}`}
-                    >
-                        <SlidersHorizontal className="h-5 w-5" />
-                    </button>
-
-                    {/* Maximized Search Bar */}
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <input 
-                            type="text" 
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="搜尋... (空白=AND, |=OR)"
-                            className="w-full pl-9 pr-8 py-2.5 bg-gray-50 border-transparent focus:bg-white focus:border-black focus:ring-0 rounded-xl text-sm transition-all outline-none font-medium"
-                        />
-                        {searchQuery && (
-                            <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 bg-gray-200 rounded-full text-gray-500 hover:bg-gray-300">
-                                <X className="h-3 w-3" />
-                            </button>
-                        )}
+                {/* Header (Mobile) - Redesigned with Search & Chips */}
+                <div className="md:hidden px-4 pb-3 border-b border-gray-100 flex flex-col gap-3 bg-white sticky top-0 z-20">
+                    <div className="flex gap-2 items-center">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <input 
+                                type="text" 
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="搜尋商品..."
+                                className="w-full pl-9 pr-8 py-2.5 bg-gray-100 border-transparent focus:bg-white focus:border-black focus:ring-1 rounded-xl text-sm transition-all outline-none font-medium"
+                            />
+                            {searchQuery && (
+                                <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 bg-gray-200 rounded-full text-gray-500">
+                                    <X className="h-3 w-3" />
+                                </button>
+                            )}
+                        </div>
+                        <button onClick={() => setIsModalOpen(false)} className="p-2.5 bg-gray-100 rounded-xl text-gray-500">
+                            <X className="h-5 w-5" />
+                        </button>
                     </div>
                     
-                    {/* Close Modal Button */}
-                    <button onClick={() => setIsModalOpen(false)} className="p-2.5 bg-white border border-gray-200 rounded-xl text-gray-500 active:bg-gray-50">
-                        <X className="h-5 w-5" />
-                    </button>
+                    {/* Horizontal Filter Chips */}
+                    <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
+                        {categoryFilters[activeCategory]?.map(filter => {
+                             const isActive = Object.keys(activeFilters).includes(filter.key as string);
+                             return (
+                                 <button 
+                                     key={filter.key}
+                                     onClick={() => setMobileFiltersOpen(true)} // Open full filters for now
+                                     className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors flex items-center gap-1 ${isActive ? 'bg-black text-white border-black' : 'bg-white text-gray-600 border-gray-200'}`}
+                                 >
+                                     {filter.label} <ChevronDown className="h-3 w-3" />
+                                 </button>
+                             )
+                        })}
+                    </div>
                 </div>
 
                 <div className="flex flex-1 min-h-0">
@@ -1110,7 +1260,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                                                                         <button 
                                                                             onClick={(e) => {
                                                                                 e.stopPropagation();
-                                                                                handleSelectProduct(product, 1); // 修正：點擊加號時增加 1 (在 handleSelectProduct 內會累加)
+                                                                                handleSelectProduct(product, 1);
                                                                             }}
                                                                             className="w-8 h-8 flex items-center justify-center text-gray-600 active:scale-90 transition-transform"
                                                                         >
