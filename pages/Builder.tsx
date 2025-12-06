@@ -287,7 +287,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                 ...newCart[existingIndex],
                 quantity: replacingItemId ? quantityToAdd : newCart[existingIndex].quantity + quantityToAdd 
             };
-            newCart[existingIndex].quantity = quantityToAdd;
+            newCart[existingIndex].quantity = quantityToAdd; // Force update to requested quantity in some flows if needed
         } else {
             newCart.push({ ...product, quantity: quantityToAdd });
         }
@@ -643,7 +643,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                                                 {(item.category === Category.CPU || item.category === Category.GPU) && item.specDetails?.tdp && <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100 ml-1 whitespace-nowrap">TDP {item.specDetails.tdp}</span>}
                                                 {errorMsg && <span className="flex-shrink-0 inline-flex items-center gap-1 text-[10px] md:text-xs bg-red-50 text-red-600 px-2 py-0.5 rounded border border-red-200"><AlertTriangle className="h-3 w-3" /><span className="hidden md:inline font-medium">{errorMsg}</span></span>}
                                             </div>
-                                            {errorMsg && <div className="md:hidden text-[10px] text-red-500 mt-1">{errorMsg}</div>}
+                                            {errorMsg && <div className="md:hidden text-[10px] text-red-500 mt-1 truncate whitespace-nowrap">{errorMsg}</div>}
                                             <div className="hidden md:block text-sm text-gray-500 mt-1 line-clamp-1">{item.description}</div>
                                         </div>
 
@@ -656,7 +656,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                                                     <button onClick={(e) => { e.stopPropagation(); handleQuantityChange(item.id, 1); }} className="w-8 hover:bg-gray-200 h-full rounded-r-lg text-gray-600 flex items-center justify-center"><Plus className="h-3 w-3" /></button>
                                                 </div>
                                                 <button onClick={(e) => { e.stopPropagation(); setQtySelectorId(item.id); }} className="md:hidden flex items-center justify-center gap-1 bg-gray-50 border border-gray-200 rounded-lg h-8 px-3 text-sm font-bold text-black shadow-sm active:scale-95">x{item.quantity} <ChevronDown className="h-3 w-3 opacity-50 ml-1" /></button>
-                                                <button onClick={(e) => { e.stopPropagation(); handleStartReplace(item); }} className="p-2 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors" title="更換商品"><RefreshCw className="h-5 w-5" /></button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleStartReplace(item); }} className="hidden md:block p-2 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors" title="更換商品"><RefreshCw className="h-5 w-5" /></button>
                                                 <button onClick={(e) => { e.stopPropagation(); handleRemoveProduct(item.id); }} className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"><Trash2 className="h-5 w-5" /></button>
                                             </div>
                                         </div>
@@ -1075,7 +1075,8 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                                                                         <button 
                                                                             onClick={(e) => {
                                                                                 e.stopPropagation();
-                                                                                handleSelectProduct(product, 1);
+                                                                                // Fix: use handleSelectProduct with specific increment or handleQuantityChange
+                                                                                handleSelectProduct(product, qtyInCart + 1);
                                                                             }}
                                                                             className="w-8 h-8 flex items-center justify-center text-white/90 hover:text-white active:scale-90 transition-transform"
                                                                         >
