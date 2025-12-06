@@ -471,12 +471,23 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
   const getSmartOptions = (category: Category, filterKey: keyof ProductSpecs) => {
      let relevantProducts = allProducts.filter(p => p.category === category);
      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        relevantProducts = relevantProducts.filter(p => 
-            p.name.toLowerCase().includes(query) ||
-            p.description.toLowerCase().includes(query) ||
-            p.specDetails?.brand?.toLowerCase().includes(query)
-        );
+        const queryRaw = searchQuery.toLowerCase();
+        // Updated logic to support AND (space) and OR (|)
+        const orGroups = queryRaw.split('|');
+        relevantProducts = relevantProducts.filter(p => {
+            const productText = [
+                p.name,
+                p.description,
+                p.specDetails?.brand || '',
+                p.id
+            ].join(' ').toLowerCase();
+
+            return orGroups.some(group => {
+                const andTerms = group.trim().split(/\s+/).filter(t => t);
+                if (andTerms.length === 0) return false;
+                return andTerms.every(term => productText.includes(term));
+            });
+        });
      }
      Object.entries(activeFilters).forEach(([key, selectedValues]: [string, string[]]) => {
       if (key !== filterKey && selectedValues.length > 0) {
@@ -500,14 +511,27 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
   const filteredModalProducts = useMemo(() => {
     if (!activeCategory) return [];
     let products = allProducts.filter(p => p.category === activeCategory);
+    
     if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        products = products.filter(p => 
-            p.name.toLowerCase().includes(query) ||
-            p.description.toLowerCase().includes(query) ||
-            p.specDetails?.brand?.toLowerCase().includes(query)
-        );
+        const queryRaw = searchQuery.toLowerCase();
+        // Updated logic to support AND (space) and OR (|)
+        const orGroups = queryRaw.split('|');
+        products = products.filter(p => {
+            const productText = [
+                p.name,
+                p.description,
+                p.specDetails?.brand || '',
+                p.id
+            ].join(' ').toLowerCase();
+
+            return orGroups.some(group => {
+                const andTerms = group.trim().split(/\s+/).filter(t => t);
+                if (andTerms.length === 0) return false;
+                return andTerms.every(term => productText.includes(term));
+            });
+        });
     }
+
     if (Object.keys(activeFilters).length > 0) {
         products = products.filter(product => {
             return Object.entries(activeFilters).every(([key, selectedValues]: [string, string[]]) => {
@@ -860,10 +884,50 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
         <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center sm:p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
             <div className="relative bg-white w-full md:max-w-7xl h-[92vh] md:h-[90vh] rounded-t-3xl md:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-slide-up md:animate-fade-in">
-                <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white z-10 flex-shrink-0">
-                    <div><h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">{replacingItemId ? <RefreshCw className="h-5 w-5 text-blue-600" /> : <Plus className="h-5 w-5" />}{replacingItemId ? '更換' : '選擇'} {activeCategory ? categoryDisplayMap[activeCategory] : ''}</h2></div>
+                {/* Header (Desktop) */}
+                <div className="hidden md:flex px-6 py-4 border-b border-gray-100 justify-between items-center bg-white z-10 flex-shrink-0">
+                    <div>
+                        <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                            {replacingItemId ? <RefreshCw className="h-5 w-5 text-blue-600" /> : <Plus className="h-5 w-5" />}
+                            {replacingItemId ? '更換' : '選擇'} {categoryDisplayMap[activeCategory]}
+                        </h2>
+                    </div>
                     <button onClick={() => setIsModalOpen(false)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"><X className="h-5 w-5" /></button>
                 </div>
+
+                {/* Header (Mobile) - Redesigned with Search Bar */}
+                <div className="md:hidden p-3 border-b border-gray-100 flex gap-2 items-center bg-white sticky top-0 z-20">
+                    {/* Compact Filter Button */}
+                    <button 
+                        onClick={() => setMobileFiltersOpen(true)}
+                        className={`p-2.5 rounded-xl border transition-colors flex-shrink-0 ${Object.keys(activeFilters).length > 0 ? 'bg-black text-white border-black' : 'bg-gray-100 text-gray-600 border-transparent active:bg-gray-200'}`}
+                    >
+                        <SlidersHorizontal className="h-5 w-5" />
+                    </button>
+
+                    {/* Maximized Search Bar */}
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <input 
+                            type="text" 
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="搜尋... (空白=AND, |=OR)"
+                            className="w-full pl-9 pr-8 py-2.5 bg-gray-50 border-transparent focus:bg-white focus:border-black focus:ring-0 rounded-xl text-sm transition-all outline-none font-medium"
+                        />
+                        {searchQuery && (
+                            <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 bg-gray-200 rounded-full text-gray-500 hover:bg-gray-300">
+                                <X className="h-3 w-3" />
+                            </button>
+                        )}
+                    </div>
+                    
+                    {/* Close Modal Button */}
+                    <button onClick={() => setIsModalOpen(false)} className="p-2.5 bg-white border border-gray-200 rounded-xl text-gray-500 active:bg-gray-50">
+                        <X className="h-5 w-5" />
+                    </button>
+                </div>
+
                 <div className="flex flex-1 min-h-0">
                     <div className="hidden lg:block w-48 border-r border-gray-100 bg-gray-50 overflow-y-auto custom-scrollbar flex-shrink-0">
                         <div className="p-3">
@@ -885,25 +949,34 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                         </div>
                     </div>
                     <div className="flex-1 flex flex-col min-w-0 bg-white relative">
-                         <div className="lg:hidden p-4 border-b border-gray-100 flex-shrink-0"><button onClick={() => setMobileFiltersOpen(true)} className="w-full flex items-center justify-center gap-2 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-bold text-sm"><SlidersHorizontal className="h-4 w-4" /> 篩選條件 {Object.keys(activeFilters).length > 0 && `(${Object.keys(activeFilters).length})`}</button></div>
-                         
-                         {/* Header Row for Name/Price Sorting */}
-                         <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center text-sm sticky top-0 z-20 backdrop-blur-sm">
-                            <div 
-                                className="flex-1 font-bold text-gray-600 hover:text-black cursor-pointer flex items-center gap-1 transition-colors select-none group"
-                                onClick={() => setModalSort(prev => {
-                                    if (prev === 'name-asc') return 'name-desc';
-                                    if (prev === 'name-desc') return 'default';
-                                    return 'name-asc';
-                                })}
-                            >
-                                商品名稱
-                                {modalSort === 'name-asc' && <ArrowUp className="h-3.5 w-3.5 text-black" />}
-                                {modalSort === 'name-desc' && <ArrowDown className="h-3.5 w-3.5 text-black" />}
-                                {modalSort !== 'name-asc' && modalSort !== 'name-desc' && <ArrowUpDown className="h-3.5 w-3.5 text-gray-400 group-hover:text-gray-600" />}
+                         {/* Desktop Search & Sort Header */}
+                         <div className="hidden lg:flex px-4 py-3 border-b border-gray-100 bg-gray-50/50 justify-between items-center text-sm sticky top-0 z-20 backdrop-blur-sm">
+                            <div className="relative w-64">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                <input 
+                                    type="text" 
+                                    placeholder="搜尋商品..." 
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
+                                />
+                                {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black"><X className="h-3 w-3" /></button>}
                             </div>
                             
                             <div className="flex items-center gap-4">
+                                <div 
+                                    className="font-bold text-gray-600 hover:text-black cursor-pointer flex items-center gap-1 transition-colors select-none group"
+                                    onClick={() => setModalSort(prev => {
+                                        if (prev === 'name-asc') return 'name-desc';
+                                        if (prev === 'name-desc') return 'default';
+                                        return 'name-asc';
+                                    })}
+                                >
+                                    名稱
+                                    {modalSort === 'name-asc' && <ArrowUp className="h-3.5 w-3.5 text-black" />}
+                                    {modalSort === 'name-desc' && <ArrowDown className="h-3.5 w-3.5 text-black" />}
+                                    {modalSort !== 'name-asc' && modalSort !== 'name-desc' && <ArrowUpDown className="h-3.5 w-3.5 text-gray-400 group-hover:text-gray-600" />}
+                                </div>
                                 <div 
                                     className="font-bold text-gray-600 hover:text-black cursor-pointer flex items-center justify-end gap-1 transition-colors select-none group min-w-[80px]"
                                     onClick={() => setModalSort(prev => {
@@ -917,94 +990,94 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                                     {modalSort === 'price-desc' && <ArrowDown className="h-3.5 w-3.5 text-black" />}
                                     {modalSort !== 'price-asc' && modalSort !== 'price-desc' && <ArrowUpDown className="h-3.5 w-3.5 text-gray-400 group-hover:text-gray-600" />}
                                 </div>
-                                <div className="w-[12rem] hidden md:block"></div> 
                             </div>
                          </div>
 
-                         <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
-                             {/* Changed from Grid to List Layout */}
-                             <div className="flex flex-col gap-3 pb-12">
+                         <div className="flex-1 overflow-y-auto custom-scrollbar bg-gray-50/50">
+                             {/* Mobile List View / Desktop Grid View */}
+                             <div className="flex flex-col md:grid md:grid-cols-2 xl:grid-cols-3 gap-0 md:gap-4 p-0 md:p-6 pb-20 md:pb-12">
                                  {filteredModalProducts.length === 0 ? (
-                                     <div className="py-20 text-center text-gray-400"><Search className="h-16 w-16 mx-auto mb-4 opacity-20" /><p className="text-lg font-medium">沒有符合條件的商品</p><button onClick={() => { setActiveFilters({}); setSearchQuery(''); }} className="mt-2 text-blue-600 font-bold hover:underline">清除所有篩選</button></div>
+                                     <div className="col-span-full py-20 text-center text-gray-400">
+                                         <Search className="h-16 w-16 mx-auto mb-4 opacity-20" />
+                                         <p className="text-lg font-medium">沒有符合條件的商品</p>
+                                         <button onClick={() => { setActiveFilters({}); setSearchQuery(''); }} className="mt-2 text-blue-600 font-bold hover:underline">清除所有篩選</button>
+                                     </div>
                                  ) : (
                                      filteredModalProducts.map(product => {
-                                         // Check cart status
-                                         const cartItem = cartItems.find(i => i.id === product.id);
-                                         const qtyInCart = cartItem ? cartItem.quantity : 0;
-                                         
-                                         // If user hasn't touched the local quantity yet, default to what's in cart (if any), else 1
-                                         const currentQty = rowQuantities[product.id] || (qtyInCart > 0 ? qtyInCart : 1);
-                                         const isSelected = qtyInCart > 0;
-
+                                         const currentQty = rowQuantities[product.id] || 1;
                                          return (
-                                             <div key={product.id} className={`group border rounded-xl p-4 transition-all flex flex-col md:flex-row items-start md:items-center gap-4 bg-white ${isSelected ? 'border-blue-500 bg-blue-50/30' : 'border-gray-100 hover:border-gray-300 hover:shadow-md'}`}>
-                                                 
-                                                 {/* Product Info (No Image) */}
-                                                 <div className="flex-1 min-w-0">
-                                                     <div className="flex flex-wrap items-center gap-2 mb-1">
-                                                         <h4 className="font-bold text-gray-900 text-base leading-tight">{product.name}</h4>
-                                                         {isSelected && (
-                                                             <span className="inline-flex items-center gap-1 bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
-                                                                 <Check className="h-3 w-3" /> 已加入 x{qtyInCart}
-                                                             </span>
+                                             <div key={product.id} className="group bg-white md:border md:border-gray-100 md:rounded-2xl p-3 md:p-4 hover:shadow-lg hover:border-gray-200 transition-all border-b border-gray-100 last:border-0 md:border-b">
+                                                 {/* Mobile Layout: Horizontal Compact Row */}
+                                                 <div className="flex flex-row md:flex-col gap-3 md:gap-4 items-center md:items-stretch">
+                                                     
+                                                     {/* Image */}
+                                                     <div className="w-16 h-16 md:w-full md:h-40 bg-gray-50 rounded-xl md:rounded-lg flex-shrink-0 flex items-center justify-center p-1 border border-gray-100 overflow-hidden">
+                                                         {product.image ? (
+                                                             <img src={product.image} className="w-full h-full object-contain mix-blend-multiply" alt="" />
+                                                         ) : (
+                                                             <Box className="h-6 w-6 md:h-12 md:w-12 text-gray-300" />
                                                          )}
                                                      </div>
-                                                     <div className="text-xs text-gray-500 mb-2 line-clamp-1">{product.description}</div>
-                                                     <div className="flex flex-wrap gap-1">
-                                                         {product.specDetails && Object.entries(product.specDetails)
-                                                             .filter(([k]) => k !== 'brand')
-                                                             .slice(0, 4).map(([k, v]) => (
-                                                             <span key={k} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded border border-gray-200">
-                                                                 <span className="opacity-50 mr-1">{k}:</span>{v}
-                                                             </span>
-                                                         ))}
-                                                     </div>
-                                                 </div>
 
-                                                 {/* Price & Actions */}
-                                                 <div className="flex items-center justify-between w-full md:w-auto md:justify-end gap-4 mt-2 md:mt-0 border-t md:border-t-0 border-gray-100 pt-3 md:pt-0">
-                                                     <div className="font-bold text-lg text-black tabular-nums whitespace-nowrap">
-                                                         ${product.price.toLocaleString()}
-                                                     </div>
-                                                     
-                                                     <div className="flex items-center gap-2">
-                                                         {/* Qty Control */}
-                                                         <div className={`flex items-center rounded-lg h-9 border ${isSelected ? 'bg-white border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
-                                                             <button 
-                                                                 onClick={(e) => { e.stopPropagation(); setRowQuantities(prev => ({ ...prev, [product.id]: Math.max(1, currentQty - 1) })); }}
-                                                                 className="w-8 h-full flex items-center justify-center hover:bg-gray-100 rounded-l-lg text-gray-600"
-                                                             >
-                                                                 <Minus className="h-3 w-3" />
-                                                             </button>
-                                                             <span className="w-8 text-center text-sm font-bold text-black">{currentQty}</span>
-                                                             <button 
-                                                                 onClick={(e) => { e.stopPropagation(); setRowQuantities(prev => ({ ...prev, [product.id]: currentQty + 1 })); }}
-                                                                 className="w-8 h-full flex items-center justify-center hover:bg-gray-100 rounded-r-lg text-gray-600"
-                                                             >
-                                                                 <Plus className="h-3 w-3" />
-                                                             </button>
+                                                     {/* Info Section */}
+                                                     <div className="flex-1 min-w-0 flex flex-col md:block justify-center">
+                                                         <div className="flex justify-between items-start mb-0.5 md:mb-1">
+                                                             <h4 className="font-bold text-gray-900 leading-tight text-sm line-clamp-2 md:line-clamp-2" title={product.name}>
+                                                                 {product.name}
+                                                             </h4>
+                                                         </div>
+                                                         
+                                                         {/* Description: Hidden on very small screens if needed, simplified on mobile */}
+                                                         <div className="text-xs text-gray-500 line-clamp-1 mb-1 md:mb-2">{product.description}</div>
+                                                         
+                                                         {/* Specs: Hidden on Mobile as requested */}
+                                                         <div className="hidden md:flex flex-wrap gap-1 mb-3">
+                                                             {product.specDetails && Object.entries(product.specDetails)
+                                                                 .filter(([k]) => k !== 'brand')
+                                                                 .slice(0, 3).map(([k, v]) => (
+                                                                 <span key={k} className="text-[10px] bg-gray-50 text-gray-500 px-1.5 py-0.5 rounded border border-gray-100">
+                                                                     {v}
+                                                                 </span>
+                                                             ))}
                                                          </div>
 
-                                                         {/* Action Button */}
-                                                         <button 
-                                                             onClick={() => handleSelectProduct(product, currentQty)}
-                                                             className={`h-9 px-4 rounded-lg font-bold text-sm shadow-sm transition-all active:scale-95 flex items-center gap-1.5 whitespace-nowrap ${
-                                                                 replacingItemId 
-                                                                    ? 'bg-orange-500 text-white hover:bg-orange-600'
-                                                                    : isSelected 
-                                                                        ? (currentQty !== qtyInCart ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-100 text-gray-400 cursor-default')
-                                                                        : 'bg-black text-white hover:bg-gray-800'
-                                                             }`}
-                                                             disabled={!replacingItemId && isSelected && currentQty === qtyInCart}
-                                                         >
-                                                             {replacingItemId ? (
-                                                                 <><RefreshCw className="h-3.5 w-3.5" /> 更換</>
-                                                             ) : isSelected ? (
-                                                                 currentQty !== qtyInCart ? '更新數量' : '已在清單'
-                                                             ) : (
-                                                                 <><Plus className="h-3.5 w-3.5" /> 加入</>
-                                                             )}
-                                                         </button>
+                                                         {/* Price & Actions Row (Desktop & Mobile Unified structure, styled differently) */}
+                                                         <div className="mt-auto md:pt-3 md:border-t md:border-gray-50 flex items-center justify-between gap-3">
+                                                             <div className="font-bold text-base md:text-lg text-black tabular-nums">
+                                                                 ${product.price.toLocaleString()}
+                                                             </div>
+                                                             
+                                                             <div className="flex items-center gap-2">
+                                                                 {/* Qty Control: Compact on mobile */}
+                                                                 <div className="flex items-center bg-gray-50 rounded-lg h-8 md:h-9 border border-gray-200">
+                                                                     <button 
+                                                                         onClick={(e) => { e.stopPropagation(); setRowQuantities(prev => ({ ...prev, [product.id]: Math.max(1, (prev[product.id] || 1) - 1) })); }}
+                                                                         className="w-7 md:w-8 h-full flex items-center justify-center hover:bg-gray-200 rounded-l-lg text-gray-600"
+                                                                     >
+                                                                         <Minus className="h-3 w-3" />
+                                                                     </button>
+                                                                     <span className="w-6 md:w-8 text-center text-xs md:text-sm font-bold text-black">{currentQty}</span>
+                                                                     <button 
+                                                                         onClick={(e) => { e.stopPropagation(); setRowQuantities(prev => ({ ...prev, [product.id]: (prev[product.id] || 1) + 1 })); }}
+                                                                         className="w-7 md:w-8 h-full flex items-center justify-center hover:bg-gray-200 rounded-r-lg text-gray-600"
+                                                                     >
+                                                                         <Plus className="h-3 w-3" />
+                                                                     </button>
+                                                                 </div>
+
+                                                                 {/* Add Button */}
+                                                                 <button 
+                                                                     onClick={() => handleSelectProduct(product, currentQty)}
+                                                                     className={`h-8 md:h-9 px-3 md:px-4 rounded-lg font-bold text-xs md:text-sm shadow-sm transition-transform active:scale-95 flex items-center gap-1.5 whitespace-nowrap ${
+                                                                         replacingItemId ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-black text-white hover:bg-gray-800'
+                                                                     }`}
+                                                                 >
+                                                                     {replacingItemId ? <RefreshCw className="h-3 w-3 md:h-3.5 md:w-3.5" /> : <Plus className="h-3 w-3 md:h-3.5 md:w-3.5" />}
+                                                                     <span className="hidden md:inline">{replacingItemId ? '更換' : '加入'}</span>
+                                                                     <span className="md:hidden">加入</span>
+                                                                 </button>
+                                                             </div>
+                                                         </div>
                                                      </div>
                                                  </div>
                                              </div>
@@ -1014,11 +1087,86 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                              </div>
                          </div>
                     </div>
-                    {mobileFiltersOpen && activeCategory && (<div className="absolute inset-0 z-30 bg-white flex flex-col lg:hidden animate-fade-in"><div className="p-4 border-b border-gray-100 flex justify-between items-center bg-white shadow-sm flex-shrink-0"><h3 className="font-bold text-lg">篩選條件</h3><button onClick={() => setMobileFiltersOpen(false)} className="p-2 bg-gray-100 rounded-full text-gray-600"><X className="h-5 w-5" /></button></div><div className="flex-1 overflow-y-auto p-4 custom-scrollbar"><div className="space-y-6">{categoryFilters[activeCategory]?.map(filter => { const options = getSmartOptions(activeCategory, filter.key); if (options.length === 0) return null; return (<div key={filter.key}><h4 className="font-bold text-gray-900 mb-2 text-sm">{filter.label}</h4><div className="flex flex-wrap gap-2">{options.map(option => { const isChecked = activeFilters[filter.key]?.includes(option); return (<button key={option} onClick={() => toggleFilter(filter.key as string, option)} className={`px-3 py-1.5 rounded-lg text-sm border transition-all ${isChecked ? 'bg-black text-white border-black font-bold' : 'bg-white text-gray-600 border-gray-200'}`}>{option}</button>) })}</div></div>); })}</div></div><div className="p-4 border-t border-gray-100 bg-white flex-shrink-0"><button onClick={() => setMobileFiltersOpen(false)} className="w-full py-3 bg-black text-white rounded-xl font-bold">查看 {filteredModalProducts.length} 個結果</button></div></div>)}
+                    {mobileFiltersOpen && activeCategory && (<div className="absolute inset-0 z-30 bg-white flex flex-col lg:hidden animate-fade-in"><div className="p-4 border-b border-gray-100 flex justify-between items-center bg-white shadow-sm flex-shrink-0"><h3 className="font-bold text-lg">篩選條件</h3><button onClick={() => setMobileFiltersOpen(false)} className="p-2 bg-gray-100 rounded-full text-gray-600"><X className="h-5 w-5" /></button></div><div className="flex-1 overflow-y-auto p-4 custom-scrollbar"><div className="space-y-6">{categoryFilters[activeCategory]?.map(filter => { const options = getSmartOptions(activeCategory!, filter.key); if (options.length === 0) return null; return (<div key={filter.key}><h4 className="font-bold text-gray-900 mb-2 text-sm">{filter.label}</h4><div className="flex flex-wrap gap-2">{options.map(option => { const isChecked = activeFilters[filter.key]?.includes(option); return (<button key={option} onClick={() => toggleFilter(filter.key as string, option)} className={`px-3 py-1.5 rounded-lg text-sm border transition-all ${isChecked ? 'bg-black text-white border-black font-bold' : 'bg-white text-gray-600 border-gray-200'}`}>{option}</button>) })}</div></div>); })}</div></div><div className="p-4 border-t border-gray-100 bg-white flex-shrink-0"><button onClick={() => setMobileFiltersOpen(false)} className="w-full py-3 bg-black text-white rounded-xl font-bold">查看 {filteredModalProducts.length} 個結果</button></div></div>)}
                 </div>
             </div>
          </div>
       )}
+
+      {/* Template Modal */}
+      {isTemplateModalOpen && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsTemplateModalOpen(false)} />
+              <div className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 animate-fade-in">
+                  <div className="flex justify-between items-center mb-6">
+                      <div className="flex items-center gap-3">
+                          <div className="p-2.5 bg-gray-100 rounded-xl">
+                              {templateMode === 'save' ? <Save className="h-6 w-6 text-black" /> : <FolderOpen className="h-6 w-6 text-black" />}
+                          </div>
+                          <div>
+                              <h3 className="text-xl font-bold text-gray-900">{templateMode === 'save' ? '儲存配置' : '載入配置'}</h3>
+                              <p className="text-xs text-gray-500">
+                                  {templateMode === 'save' ? '將目前的清單儲存為範本' : '從儲存的範本中還原'}
+                              </p>
+                          </div>
+                      </div>
+                      <button onClick={() => setIsTemplateModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-black"><X className="h-5 w-5" /></button>
+                  </div>
+                  
+                  {templateMode === 'save' ? (
+                      <div className="space-y-4">
+                          <div>
+                              <label className="block text-sm font-bold text-gray-700 mb-2">範本名稱</label>
+                              <input 
+                                 type="text" 
+                                 value={newTemplateName}
+                                 onChange={(e) => setNewTemplateName(e.target.value)}
+                                 placeholder="例如: 遊戲機 40K (2024)"
+                                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-black focus:border-transparent font-bold transition-all"
+                                 autoFocus
+                              />
+                          </div>
+                          <button onClick={handleSaveTemplate} className="w-full py-3.5 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-colors shadow-lg active:scale-95">
+                              確認儲存
+                          </button>
+                      </div>
+                  ) : (
+                      <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1 custom-scrollbar">
+                          {templates.length === 0 ? (
+                              <div className="text-center text-gray-400 py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                                  <FolderOpen className="h-10 w-10 mx-auto mb-2 opacity-20" />
+                                  <p className="text-sm">暫無儲存的範本</p>
+                              </div>
+                          ) : (
+                              templates.map(template => (
+                                  <div key={template.id} className="group border border-gray-200 rounded-xl p-4 hover:border-black transition-all bg-white hover:shadow-md cursor-pointer" onClick={() => handleLoadTemplate(template)}>
+                                      <div className="flex justify-between items-start mb-2">
+                                          <div>
+                                              <div className="font-bold text-gray-900 text-lg group-hover:text-blue-600 transition-colors">{template.name}</div>
+                                              <div className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                                                  <Clock className="h-3 w-3" /> {new Date(template.timestamp).toLocaleString()}
+                                              </div>
+                                          </div>
+                                          <button 
+                                              onClick={(e) => { e.stopPropagation(); handleDeleteTemplate(template.id); }} 
+                                              className="text-gray-400 hover:text-red-500 p-2 rounded-lg hover:bg-red-50 transition-colors"
+                                          >
+                                              <Trash2 className="h-4 w-4" />
+                                          </button>
+                                      </div>
+                                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50">
+                                          <span className="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{template.items.length} 個零件</span>
+                                          <span className="text-xs font-bold text-blue-600">點擊載入</span>
+                                      </div>
+                                  </div>
+                              ))
+                          )}
+                      </div>
+                  )}
+              </div>
+          </div>
+      )}
+
     </div>
   );
 };
