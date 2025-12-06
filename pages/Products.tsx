@@ -33,18 +33,17 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
 
   const filteredProducts = useMemo(() => {
     // Pass 'All' as null if selectedCategory is 'All' or just pass the string, our helper handles it.
-    // The helper expects string | null.
     const result = filterProducts(allProducts, searchQuery, selectedCategory, activeFilters);
 
     switch (sortOption) {
       case 'price-asc':
-        result.sort((a, b) => a.price - b.price);
+        result.sort((a: Product, b: Product) => a.price - b.price);
         break;
       case 'price-desc':
-        result.sort((a, b) => b.price - a.price);
+        result.sort((a: Product, b: Product) => b.price - a.price);
         break;
       case 'name-asc':
-        result.sort((a, b) => a.name.localeCompare(b.name));
+        result.sort((a: Product, b: Product) => a.name.localeCompare(b.name));
         break;
       default:
         break;
@@ -149,7 +148,7 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
 
                                             {isFilterExpanded && (
                                                 <div className="pl-6 py-1 space-y-1.5">
-                                                    {options.map(option => {
+                                                    {options.map((option: string) => {
                                                         const isChecked = activeFilters[filter.key]?.includes(option);
                                                         return (
                                                             <div 
@@ -310,7 +309,7 @@ const Products: React.FC<ProductsProps> = ({ addToCart }) => {
         <div className="flex-1">
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
             {filteredProducts.length > 0 ? (
-              filteredProducts.map((product, index) => {
+              filteredProducts.map((product: Product, index: number) => {
                 const CategoryIcon = getCategoryIcon(product.category);
                 
                 return (
