@@ -382,10 +382,10 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
     const result = filterProducts(allProducts, searchQuery, activeCategory, activeFilters);
 
     switch (modalSort) {
-        case 'price-asc': result.sort((a, b) => a.price - b.price); break;
-        case 'price-desc': result.sort((a, b) => b.price - a.price); break;
-        case 'name-asc': result.sort((a, b) => a.name.localeCompare(b.name)); break;
-        case 'name-desc': result.sort((a, b) => b.name.localeCompare(a.name)); break;
+        case 'price-asc': result.sort((a: Product, b: Product) => a.price - b.price); break;
+        case 'price-desc': result.sort((a: Product, b: Product) => b.price - a.price); break;
+        case 'name-asc': result.sort((a: Product, b: Product) => a.name.localeCompare(b.name)); break;
+        case 'name-desc': result.sort((a: Product, b: Product) => b.name.localeCompare(a.name)); break;
     }
     return result;
   }, [activeCategory, activeFilters, allProducts, modalSort, searchQuery]);
@@ -873,7 +873,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                                     return (
                                         <div key={filter.key} className="border-b border-gray-200 last:border-0 pb-2 mb-2">
                                             <button onClick={() => toggleNode(filter.key as string)} className="w-full flex items-center justify-between py-2 text-left group transition-colors rounded-lg hover:bg-gray-100 px-2 -mx-2"><div className="flex items-center gap-2"><h4 className={`font-bold text-sm ${activeCount > 0 ? 'text-black' : 'text-gray-700'} group-hover:text-black`}>{filter.label}</h4>{activeCount > 0 && (<span className="bg-black text-white text-[10px] px-1.5 py-0.5 rounded-full ml-auto">{activeCount}</span>)}{isExpanded ? <ChevronDown className="h-4 w-4 text-gray-400" /> : <ChevronRight className="h-4 w-4 text-gray-400" />}</div></button>
-                                            {isExpanded && (<div className="pl-1 mt-1 space-y-1 mb-3">{options.map(option => { const isChecked = activeFilters[filter.key]?.includes(option); return (<button key={option} onClick={() => toggleFilter(filter.key as string, option)} className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition-all flex items-center gap-2 group/opt ${isChecked ? 'bg-black text-white font-bold' : 'text-gray-600 hover:bg-gray-200'}`}><div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${isChecked ? 'border-white bg-black' : 'border-gray-300 bg-white group-hover/opt:border-gray-400'}`}>{isChecked && <Check className="h-3 w-3 text-white" />}</div><span className="truncate">{option}</span></button>); })}</div>)}
+                                            {isExpanded && (<div className="pl-1 mt-1 space-y-1 mb-3">{options.map((option: string) => { const isChecked = activeFilters[filter.key]?.includes(option); return (<button key={option} onClick={() => toggleFilter(filter.key as string, option)} className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition-all flex items-center gap-2 group/opt ${isChecked ? 'bg-black text-white font-bold' : 'text-gray-600 hover:bg-gray-200'}`}><div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${isChecked ? 'border-white bg-black' : 'border-gray-300 bg-white group-hover/opt:border-gray-400'}`}>{isChecked && <Check className="h-3 w-3 text-white" />}</div><span className="truncate">{option}</span></button>); })}</div>)}
                                         </div>
                                     );
                                 })}
@@ -935,7 +935,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                                          <button onClick={() => { setActiveFilters({}); setSearchQuery(''); }} className="mt-2 text-blue-600 font-bold hover:underline">清除所有篩選</button>
                                      </div>
                                  ) : (
-                                     filteredModalProducts.map(product => {
+                                     filteredModalProducts.map((product: Product) => {
                                          const currentQty = rowQuantities[product.id] || 1;
                                          const qtyInCart = cartItems.find(i => i.id === product.id)?.quantity || 0;
                                          const isSelected = qtyInCart > 0;
@@ -1068,7 +1068,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                              </div>
                          </div>
                     </div>
-                    {mobileFiltersOpen && activeCategory && (<div className="absolute inset-0 z-30 bg-white flex flex-col lg:hidden animate-fade-in"><div className="p-4 border-b border-gray-100 flex justify-between items-center bg-white shadow-sm flex-shrink-0"><h3 className="font-bold text-lg">篩選條件</h3><button onClick={() => setMobileFiltersOpen(false)} className="p-2 bg-gray-100 rounded-full text-gray-600"><X className="h-5 w-5" /></button></div><div className="flex-1 overflow-y-auto p-4 custom-scrollbar"><div className="space-y-6">{categoryFilters[activeCategory]?.map(filter => { const options = getSmartOptions(allProducts, activeCategory!, filter.key, searchQuery, activeFilters); if (options.length === 0) return null; return (<div key={filter.key}><h4 className="font-bold text-gray-900 mb-2 text-sm">{filter.label}</h4><div className="flex flex-wrap gap-2">{options.map(option => { const isChecked = activeFilters[filter.key]?.includes(option); return (<button key={option} onClick={() => toggleFilter(filter.key as string, option)} className={`px-3 py-1.5 rounded-lg text-sm border transition-all ${isChecked ? 'bg-black text-white border-black font-bold' : 'bg-white text-gray-600 border-gray-200'}`}>{option}</button>) })}</div></div>); })}</div></div><div className="p-4 border-t border-gray-100 bg-white flex-shrink-0"><button onClick={() => setMobileFiltersOpen(false)} className="w-full py-3 bg-black text-white rounded-xl font-bold">查看 {filteredModalProducts.length} 個結果</button></div></div>)}
+                    {mobileFiltersOpen && activeCategory && (<div className="absolute inset-0 z-30 bg-white flex flex-col lg:hidden animate-fade-in"><div className="p-4 border-b border-gray-100 flex justify-between items-center bg-white shadow-sm flex-shrink-0"><h3 className="font-bold text-lg">篩選條件</h3><button onClick={() => setMobileFiltersOpen(false)} className="p-2 bg-gray-100 rounded-full text-gray-600"><X className="h-5 w-5" /></button></div><div className="flex-1 overflow-y-auto p-4 custom-scrollbar"><div className="space-y-6">{categoryFilters[activeCategory]?.map(filter => { const options = getSmartOptions(allProducts, activeCategory!, filter.key, searchQuery, activeFilters); if (options.length === 0) return null; return (<div key={filter.key}><h4 className="font-bold text-gray-900 mb-2 text-sm">{filter.label}</h4><div className="flex flex-wrap gap-2">{options.map((option: string) => { const isChecked = activeFilters[filter.key]?.includes(option); return (<button key={option} onClick={() => toggleFilter(filter.key as string, option)} className={`px-3 py-1.5 rounded-lg text-sm border transition-all ${isChecked ? 'bg-black text-white border-black font-bold' : 'bg-white text-gray-600 border-gray-200'}`}>{option}</button>) })}</div></div>); })}</div></div><div className="p-4 border-t border-gray-100 bg-white flex-shrink-0"><button onClick={() => setMobileFiltersOpen(false)} className="w-full py-3 bg-black text-white rounded-xl font-bold">查看 {filteredModalProducts.length} 個結果</button></div></div>)}
                 </div>
             </div>
          </div>
