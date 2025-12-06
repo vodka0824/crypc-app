@@ -1,9 +1,9 @@
 
 // components/admin/ProductTable.tsx
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { Category, Product } from '../../types';
 import { categoryDisplayMap, categoryFilters } from '../../data/mockData';
-import { Loader2, Square, CheckSquare, Edit, Trash2, Clock, Image as ImageIcon, Box } from 'lucide-react';
+import { Loader2, Square, CheckSquare, Edit, Trash2, Clock, Image as ImageIcon, Box, MoreVertical } from 'lucide-react';
 
 interface ProductTableProps {
   isLoading: boolean;
@@ -32,6 +32,39 @@ const ProductTable: React.FC<ProductTableProps> = ({
   const dynamicSpecs = (!isAllCategories && filterCategory !== Category.OTHERS)
     ? categoryFilters[filterCategory as Category] || []
     : [];
+
+  // Long press logic
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const isLongPress = useRef(false);
+
+  const handleTouchStart = (id: string) => {
+    isLongPress.current = false;
+    timerRef.current = setTimeout(() => {
+        isLongPress.current = true;
+        // Trigger selection mode if not already active
+        if (selectedIds.size === 0) {
+            if (window.navigator.vibrate) window.navigator.vibrate(50);
+            onSelectOne(id);
+        }
+    }, 500); // 500ms long press
+  };
+
+  const handleTouchEnd = () => {
+    if (timerRef.current) {
+        clearTimeout(timerRef.current);
+    }
+  };
+
+  const handleMobileCardClick = (id: string, product: Product) => {
+      if (isLongPress.current) return; // Handled by timer
+      
+      // If in selection mode, toggle selection
+      if (selectedIds.size > 0) {
+          onSelectOne(id);
+      } else {
+          // Otherwise do nothing or expand details (currently nothing special, swipe for actions)
+      }
+  };
 
   const formatTime = (timestamp?: number) => {
     if (!timestamp) return '-';
@@ -65,74 +98,96 @@ const ProductTable: React.FC<ProductTableProps> = ({
   return (
     <div className="h-full flex flex-col bg-transparent md:bg-white md:rounded-3xl md:border md:border-gray-200 md:shadow-sm overflow-hidden">
       
-      {/* --- Mobile View: Card List (Visible only on small screens) --- */}
-      <div className="md:hidden flex-1 overflow-y-auto pb-24 px-1">
-        <div className="flex justify-between items-center mb-3 px-1">
-            <button onClick={onSelectAll} className="flex items-center gap-2 text-sm font-bold text-gray-500">
-                {selectedIds.size > 0 && selectedIds.size === filteredProducts.length ? <CheckSquare className="h-5 w-5 text-black" /> : <Square className="h-5 w-5" />}
-                全選
-            </button>
-            <span className="text-xs text-gray-400">{filteredProducts.length} 個商品</span>
-        </div>
+      {/* --- Mobile View: Swipeable Card List --- */}
+      <div className="md:hidden flex-1 overflow-y-auto pb-24 px-1 hide-scrollbar">
+        {/* Mobile Header: Selection Status */}
+        {selectedIds.size > 0 && (
+            <div className="sticky top-0 z-20 bg-[#F5F5F7]/95 backdrop-blur-sm p-2 mb-2 flex justify-between items-center rounded-lg border border-blue-200 text-blue-800 shadow-sm animate-fade-in">
+                <span className="font-bold text-sm">已選取 {selectedIds.size} 項</span>
+                <button onClick={onSelectAll} className="text-xs font-bold underline">
+                    {selectedIds.size === filteredProducts.length ? '取消全選' : '全選'}
+                </button>
+            </div>
+        )}
 
         <div className="space-y-3">
             {filteredProducts.map(product => {
                 const isSelected = selectedIds.has(product.id);
                 return (
+                    // The Container for Swipe
                     <div 
                         key={product.id} 
-                        className={`bg-white p-4 rounded-2xl border transition-all relative overflow-hidden ${isSelected ? 'border-black ring-1 ring-black shadow-md' : 'border-gray-100 shadow-sm'}`}
-                        onClick={() => onSelectOne(product.id)}
+                        className={`relative w-full h-[110px] overflow-x-auto snap-x snap-mandatory hide-scrollbar rounded-2xl transition-all ${isSelected ? 'ring-2 ring-blue-500 shadow-md transform scale-[0.98]' : 'shadow-sm'}`}
+                        onTouchStart={() => handleTouchStart(product.id)}
+                        onTouchEnd={handleTouchEnd}
+                        onClick={() => handleMobileCardClick(product.id, product)}
                     >
-                        <div className="flex gap-4">
-                            {/* Checkbox Area */}
-                            <div className="flex-shrink-0 pt-1">
-                                <div className={`transition-colors ${isSelected ? 'text-black' : 'text-gray-300'}`}>
-                                    {isSelected ? <CheckSquare className="h-6 w-6" /> : <Square className="h-6 w-6" />}
-                                </div>
-                            </div>
-
-                            {/* Content */}
-                            <div className="flex-1 min-w-0 space-y-2">
-                                <div className="flex justify-between items-start gap-2">
-                                    <h3 className="font-bold text-gray-900 leading-tight line-clamp-2 text-sm">
-                                        {product.name}
-                                    </h3>
-                                    <span className="flex-shrink-0 font-bold font-mono text-base text-black">
-                                        ${product.price.toLocaleString()}
-                                    </span>
-                                </div>
-                                
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="bg-gray-100 text-gray-600 text-[10px] px-2 py-0.5 rounded-full font-bold">
-                                        {categoryDisplayMap[product.category]}
-                                    </span>
-                                    <span className="text-[10px] text-gray-400 font-mono">
-                                        {product.id}
-                                    </span>
+                        {/* Wrapper for Content + Actions width */}
+                        <div className="flex w-[calc(100%+140px)] h-full">
+                            
+                            {/* Main Card Content (Snap Start) */}
+                            <div className="w-[100vw] snap-start flex-shrink-0 bg-white border border-gray-100 rounded-2xl flex items-center p-3 gap-3">
+                                {/* Visual - Large Icon/Image */}
+                                <div className="w-20 h-20 bg-gray-50 rounded-xl flex items-center justify-center flex-shrink-0 border border-gray-100 relative overflow-hidden">
+                                    {product.image ? (
+                                        <img src={product.image} className="w-full h-full object-contain mix-blend-multiply" alt="" />
+                                    ) : (
+                                        <div className="text-gray-300 flex flex-col items-center">
+                                            <ImageIcon className="h-6 w-6 opacity-50" />
+                                        </div>
+                                    )}
+                                    {/* Selection Check Overlay */}
+                                    {isSelected && (
+                                        <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center backdrop-blur-[1px]">
+                                            <div className="bg-blue-500 text-white rounded-full p-1"><CheckSquare className="h-5 w-5" /></div>
+                                        </div>
+                                    )}
                                 </div>
 
-                                <div className="pt-2 border-t border-gray-50 flex justify-between items-end">
-                                    <span className="text-[10px] text-gray-300 flex items-center gap-1">
-                                        <Clock className="h-3 w-3" /> {formatTime(product.lastUpdated)}
-                                    </span>
-                                    
-                                    <div className="flex gap-2">
-                                        <button 
-                                            onClick={(e) => { e.stopPropagation(); onEdit(product); }} 
-                                            className="p-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-200 active:scale-95 transition-all"
-                                        >
-                                            <Edit className="h-4 w-4" />
-                                        </button>
-                                        <button 
-                                            onClick={(e) => { e.stopPropagation(); onDelete(product.id); }} 
-                                            className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 active:scale-95 transition-all"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </button>
+                                {/* Text Info */}
+                                <div className="flex-1 min-w-0 flex flex-col justify-between h-full py-1">
+                                    <div>
+                                        <div className="flex justify-between items-start">
+                                            <span className="text-[10px] text-gray-400 font-mono tracking-tighter uppercase">{product.category}</span>
+                                            <div className="flex items-center gap-1">
+                                                {product.specDetails?.brand && (
+                                                    <span className="text-[9px] bg-gray-100 text-gray-500 px-1.5 rounded-full">{product.specDetails.brand}</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <h3 className="font-bold text-gray-900 leading-tight text-sm line-clamp-2 mt-0.5">
+                                            {product.name}
+                                        </h3>
+                                    </div>
+                                    <div className="flex justify-between items-end">
+                                        <div className="font-mono font-bold text-lg text-black">
+                                            ${product.price.toLocaleString()}
+                                        </div>
+                                        <div className="text-[10px] text-gray-300 flex items-center animate-pulse">
+                                            <MoreVertical className="h-3 w-3" /> 滑動操作
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Action Buttons (Reveal on scroll) */}
+                            <div className="w-[70px] bg-gray-100 flex items-center justify-center snap-center">
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); onEdit(product); }}
+                                    className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-blue-600 shadow-sm border border-gray-200 active:scale-90 transition-transform"
+                                >
+                                    <Edit className="h-5 w-5" />
+                                </button>
+                            </div>
+                            <div className="w-[70px] bg-gray-100 flex items-center justify-center snap-center pr-4 rounded-r-2xl">
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); onDelete(product.id); }}
+                                    className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-red-600 shadow-sm border border-gray-200 active:scale-90 transition-transform"
+                                >
+                                    <Trash2 className="h-5 w-5" />
+                                </button>
+                            </div>
+
                         </div>
                     </div>
                 );
