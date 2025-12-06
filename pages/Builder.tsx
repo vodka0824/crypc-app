@@ -7,7 +7,7 @@ import { useProducts } from '../contexts/ProductContext';
 import { generateSmartBuild } from '../services/geminiService';
 import toast from 'react-hot-toast';
 import ConfirmationModal from '../components/common/ConfirmationModal';
-import { parseWattage } from '../utils/builderLogic';
+import { parseWattage, checkCompatibility } from '../utils/builderLogic';
 import MobileStepProgress from '../components/builder/MobileStepProgress';
 import { triggerHaptic } from '../utils/uiHelpers';
 
@@ -58,6 +58,20 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
     });
     return state as BuildState;
   }, [cartItems]);
+
+  // --- Optimization: Memoize Compatibility Checks ---
+  // Calculates all errors once when cart changes, instead of per-render per-slot
+  const compatibilityMap = useMemo(() => {
+    const map: Record<string, string | null> = {};
+    cartItems.forEach(item => {
+        // Use the checkCompatibility from utils/builderLogic
+        const error = checkCompatibility(item, build);
+        if (error) {
+            map[item.id] = error;
+        }
+    });
+    return map;
+  }, [cartItems, build]);
 
   // --- State Management ---
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -134,17 +148,17 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
   const currentPsuWattage = primaryPsu ? parseWattage(primaryPsu.specDetails?.wattage) : 0;
 
   // --- Handlers ---
-  const handleOpenSelection = (category: Category) => {
+  const handleOpenSelection = useCallback((category: Category) => {
     setReplacingItemId(null);
     setActiveCategory(category);
     setIsModalOpen(true);
-  };
+  }, []);
 
-  const handleStartReplace = (item: BuilderItem) => {
+  const handleStartReplace = useCallback((item: BuilderItem) => {
     setReplacingItemId(item.id);
     setActiveCategory(item.category);
     setIsModalOpen(true);
-  };
+  }, []);
 
   const handleSelectProduct = (product: Product, quantityToAdd: number) => {
     triggerHaptic();
@@ -162,12 +176,12 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
     if (replacingItemId) { setReplacingItemId(null); setIsModalOpen(false); }
   };
 
-  const handleRemoveProduct = (productId: string) => {
+  const handleRemoveProduct = useCallback((productId: string) => {
     triggerHaptic();
     setCartItems(prev => prev.filter(item => item.id !== productId));
-  };
+  }, []);
 
-  const handleClearCategory = (category: Category) => {
+  const handleClearCategory = useCallback((category: Category) => {
     setConfirmModalState({
       isOpen: true, title: '清空分類', message: `確定要移除所有 ${categoryDisplayMap[category]} 嗎？`,
       onConfirm: () => {
@@ -175,12 +189,12 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
         setConfirmModalState(prev => ({ ...prev, isOpen: false }));
       }
     });
-  };
+  }, []);
 
-  const handleQuantityChange = (productId: string, delta: number) => {
+  const handleQuantityChange = useCallback((productId: string, delta: number) => {
     triggerHaptic();
     setCartItems(prev => prev.map(item => item.id === productId ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item));
-  };
+  }, []);
 
   const handleDirectUpdateQuantity = (productId: string, newQty: number) => {
     setCartItems(prev => prev.map(item => item.id === productId ? { ...item, quantity: newQty } : item));
@@ -284,6 +298,8 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                     label={slot.label}
                     items={build[slot.category] || []}
                     buildState={build}
+                    // Pass the memoized map instead of calculating inside
+                    compatibilityMap={compatibilityMap}
                     onOpenSelection={handleOpenSelection}
                     onClearCategory={handleClearCategory}
                     onRemoveItem={handleRemoveProduct}
@@ -389,7 +405,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
           </div>
       )}
 
-      {/* Selection Modal (Refactored) */}
+      {/* Selection Modal (Refactored & Virtualized) */}
       {isModalOpen && activeCategory && (
           <ProductSelectionModal
               isOpen={isModalOpen}
