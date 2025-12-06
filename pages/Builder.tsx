@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Category, Product, BuildState, BuilderItem, ProductSpecs, BuildTemplate, CartItem } from '../types';
 import { Plus, Check, RotateCcw, X, ChevronDown, ChevronRight, Cpu, Minus, Trash2, AlertTriangle, SlidersHorizontal, ListFilter, Eraser, Monitor, Disc, Save, FolderOpen, Search, RefreshCw, Sparkles, Loader2, Bot, Share2, Copy, StickyNote, Box, Fan, Wind, Zap, ShoppingCart, CreditCard, Banknote, CircuitBoard, HardDrive, Gamepad2, Droplets, Mouse, MemoryStick, Clock, ArrowRight, ArrowUp, ArrowDown, ArrowUpDown, MoreHorizontal, MessageSquare, Send, ClipboardCopy } from 'lucide-react';
 import { categoryFilters, categoryDisplayMap } from '../data/mockData';
@@ -9,7 +9,10 @@ import toast from 'react-hot-toast';
 import ConfirmationModal from '../components/common/ConfirmationModal';
 import { parseWattage, checkCompatibility, parseDimension } from '../utils/builderLogic';
 import InstallmentCalculator from '../components/builder/InstallmentCalculator';
+import MobileStepProgress from '../components/builder/MobileStepProgress';
+import SwipeableRow from '../components/builder/SwipeableRow';
 import { filterProducts, getSmartOptions } from '../utils/searchHelper';
+import { triggerHaptic } from '../utils/uiHelpers';
 
 // Slot definition for UI iteration
 const buildSlots = [
@@ -33,109 +36,6 @@ const usagePresets = [
     { label: '影音創作', value: '影片剪輯、3D 建模渲染、圖形設計' },
     { label: '程式開發', value: '軟體開發、虛擬機運行、多工處理' }
 ];
-
-// Helper for Haptic Feedback
-const triggerHaptic = () => {
-    if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate(10);
-    }
-};
-
-// --- Mobile Components ---
-
-// 1. Step Progress Bar (Updated Order)
-const MobileStepProgress = ({ cartItems }: { cartItems: CartItem[] }) => {
-    const hasCategory = (cat: Category) => cartItems.some(i => i.category === cat);
-    
-    // Ordered specifically as requested
-    const steps = [
-        { label: '處理器', category: Category.CPU },
-        { label: '記憶體', category: Category.RAM },
-        { label: '主機板', category: Category.MB },
-        { label: '儲存', category: Category.SSD },
-        { label: '顯卡', category: Category.GPU },
-        { label: '電源', category: Category.PSU },
-        { label: '機殼', category: Category.CASE },
-    ];
-
-    const activeStepsCount = steps.filter(s => hasCategory(s.category)).length;
-
-    return (
-        <div className="md:hidden flex justify-between items-center px-4 py-3 bg-white border-b border-gray-100 sticky top-16 z-20 overflow-x-auto hide-scrollbar">
-            {steps.map((step, idx) => {
-                const isActive = hasCategory(step.category);
-                return (
-                    <div key={idx} className="flex flex-col items-center gap-1 min-w-[3.5rem] flex-shrink-0">
-                        <div className={`w-2.5 h-2.5 rounded-full transition-all duration-500 border-2 ${isActive ? 'bg-black border-black scale-110' : 'bg-white border-gray-300'}`} />
-                        <span className={`text-[10px] font-bold ${isActive ? 'text-black' : 'text-gray-400'}`}>{step.label}</span>
-                    </div>
-                );
-            })}
-            {/* Progress Line Background */}
-            <div className="absolute top-[20px] left-8 right-8 h-[2px] bg-gray-100 -z-10" />
-            {/* Active Progress Line */}
-            <div 
-                className="absolute top-[20px] left-8 h-[2px] bg-black -z-10 transition-all duration-500" 
-                style={{ width: `calc(${(activeStepsCount > 0 ? (activeStepsCount - 1) : 0) / (steps.length - 1)} * (100% - 4rem))` }} 
-            />
-        </div>
-    );
-};
-
-// 2. Swipeable Row Component
-const SwipeableRow = ({ children, onDelete, onReplace }: { children: React.ReactNode, onDelete: () => void, onReplace: () => void }) => {
-    const [offsetX, setOffsetX] = useState(0);
-    const startX = useRef(0);
-    
-    const handleTouchStart = (e: React.TouchEvent) => {
-        startX.current = e.touches[0].clientX;
-    };
-
-    const handleTouchMove = (e: React.TouchEvent) => {
-        const currentX = e.touches[0].clientX;
-        const diff = currentX - startX.current;
-        // Limit swipe distance
-        if (diff > -100 && diff < 100) {
-            setOffsetX(diff);
-        }
-    };
-
-    const handleTouchEnd = () => {
-        if (offsetX < -80) {
-            triggerHaptic();
-            onDelete();
-        } else if (offsetX > 80) {
-            triggerHaptic();
-            onReplace();
-        }
-        setOffsetX(0);
-    };
-
-    return (
-        <div className="relative overflow-hidden rounded-xl">
-            {/* Background Actions */}
-            <div className="absolute inset-0 flex justify-between items-center px-4 rounded-xl">
-                <div className={`flex items-center gap-1 font-bold text-blue-600 transition-opacity ${offsetX > 40 ? 'opacity-100' : 'opacity-0'}`}>
-                    <RefreshCw className="h-5 w-5" /> 更換
-                </div>
-                <div className={`flex items-center gap-1 font-bold text-red-600 transition-opacity ${offsetX < -40 ? 'opacity-100' : 'opacity-0'}`}>
-                    刪除 <Trash2 className="h-5 w-5" />
-                </div>
-            </div>
-            
-            {/* Foreground Content */}
-            <div 
-                className="bg-white relative transition-transform duration-200 ease-out rounded-xl"
-                style={{ transform: `translateX(${offsetX}px)` }}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-            >
-                {children}
-            </div>
-        </div>
-    );
-};
 
 interface BuilderProps {
   cartItems: CartItem[];
@@ -966,7 +866,7 @@ const Builder: React.FC<BuilderProps> = ({ cartItems, setCartItems }) => {
                             <div className="flex items-center justify-between mb-6"><div className="flex items-center gap-2 text-gray-500 font-bold text-sm uppercase tracking-wider"><ListFilter className="h-4 w-4" /> 篩選條件</div>{Object.keys(activeFilters).length > 0 && (<button onClick={() => setActiveFilters({})} className="text-xs text-blue-600 hover:text-blue-800 font-bold hover:underline">清除全部</button>)}</div>
                             <div className="space-y-1">
                                 {activeCategory && categoryFilters[activeCategory]?.map(filter => {
-                                    const options = getSmartOptions(allProducts, activeCategory, filter.key, searchQuery, activeFilters);
+                                    const options = getSmartOptions(allProducts, activeCategory!, filter.key, searchQuery, activeFilters);
                                     if (options.length === 0) return null;
                                     const isExpanded = expandedNodes[filter.key] ?? true;
                                     const activeCount = activeFilters[filter.key]?.length || 0;
