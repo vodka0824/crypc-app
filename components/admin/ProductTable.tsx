@@ -15,7 +15,7 @@ interface ProductTableProps {
   onSelectOne: (id: string) => void;
   onEdit: (product: Product) => void;
   onDelete: (id: string) => void;
-  isCompactMode: boolean; // New prop
+  isCompactMode: boolean; // Added prop definition
 }
 
 const ProductTable: React.FC<ProductTableProps> = ({
@@ -35,7 +35,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
     ? categoryFilters[filterCategory as Category] || []
     : [];
 
-  // Long press logic
+  // Long press logic for mobile selection
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isLongPress = useRef(false);
 
@@ -43,11 +43,12 @@ const ProductTable: React.FC<ProductTableProps> = ({
     isLongPress.current = false;
     timerRef.current = setTimeout(() => {
         isLongPress.current = true;
+        // Trigger selection mode if not already active
         if (selectedIds.size === 0) {
-            if (window.navigator.vibrate) window.navigator.vibrate(50);
+            if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(50);
             onSelectOne(id);
         }
-    }, 500);
+    }, 500); // 500ms long press
   };
 
   const handleTouchEnd = () => {
@@ -57,7 +58,9 @@ const ProductTable: React.FC<ProductTableProps> = ({
   };
 
   const handleMobileCardClick = (id: string, product: Product) => {
-      if (isLongPress.current) return;
+      if (isLongPress.current) return; // Handled by timer
+      
+      // If in selection mode, toggle selection
       if (selectedIds.size > 0) {
           onSelectOne(id);
       }
@@ -74,7 +77,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
     });
   };
 
-  // --- Styles based on Compact Mode ---
+  // --- Dynamic Styles based on Compact Mode ---
   const cellPadding = isCompactMode ? 'py-1.5 px-3' : 'py-4 px-4';
   const headerPadding = isCompactMode ? 'py-2 px-3' : 'py-3 px-4';
   const textSize = isCompactMode ? 'text-xs' : 'text-sm';
@@ -103,8 +106,9 @@ const ProductTable: React.FC<ProductTableProps> = ({
   return (
     <div className="h-full flex flex-col bg-transparent md:bg-white md:rounded-3xl md:border md:border-gray-200 md:shadow-sm overflow-hidden">
       
-      {/* --- Mobile View: Swipeable Card List (unchanged, compact mode only affects desktop table) --- */}
+      {/* --- Mobile View: Swipeable Card List (Only visible on mobile) --- */}
       <div className="md:hidden flex-1 overflow-y-auto pb-24 px-1 hide-scrollbar">
+        {/* Mobile Header: Selection Status */}
         {selectedIds.size > 0 && (
             <div className="sticky top-0 z-20 bg-[#F5F5F7]/95 backdrop-blur-sm p-2 mb-2 flex justify-between items-center rounded-lg border border-blue-200 text-blue-800 shadow-sm animate-fade-in">
                 <span className="font-bold text-sm">已選取 {selectedIds.size} 項</span>
@@ -125,7 +129,10 @@ const ProductTable: React.FC<ProductTableProps> = ({
                         onTouchEnd={handleTouchEnd}
                         onClick={() => handleMobileCardClick(product.id, product)}
                     >
+                        {/* Wrapper for Content + Actions width */}
                         <div className="flex w-[calc(100%+140px)] h-full">
+                            
+                            {/* Main Card Content (Snap Start) */}
                             <div className="w-[100vw] snap-start flex-shrink-0 bg-white border border-gray-100 rounded-2xl flex items-center p-3 gap-3">
                                 <div className="w-20 h-20 bg-gray-50 rounded-xl flex items-center justify-center flex-shrink-0 border border-gray-100 relative overflow-hidden">
                                     {product.image ? (
@@ -141,6 +148,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                                         </div>
                                     )}
                                 </div>
+
                                 <div className="flex-1 min-w-0 flex flex-col justify-between h-full py-1">
                                     <div>
                                         <div className="flex justify-between items-start">
@@ -165,12 +173,25 @@ const ProductTable: React.FC<ProductTableProps> = ({
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Action Buttons (Reveal on scroll) */}
                             <div className="w-[70px] bg-gray-100 flex items-center justify-center snap-center">
-                                <button onClick={(e) => { e.stopPropagation(); onEdit(product); }} className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-blue-600 shadow-sm border border-gray-200 active:scale-90 transition-transform"><Edit className="h-5 w-5" /></button>
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); onEdit(product); }}
+                                    className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-blue-600 shadow-sm border border-gray-200 active:scale-90 transition-transform"
+                                >
+                                    <Edit className="h-5 w-5" />
+                                </button>
                             </div>
                             <div className="w-[70px] bg-gray-100 flex items-center justify-center snap-center pr-4 rounded-r-2xl">
-                                <button onClick={(e) => { e.stopPropagation(); onDelete(product.id); }} className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-red-600 shadow-sm border border-gray-200 active:scale-90 transition-transform"><Trash2 className="h-5 w-5" /></button>
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); onDelete(product.id); }}
+                                    className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-red-600 shadow-sm border border-gray-200 active:scale-90 transition-transform"
+                                >
+                                    <Trash2 className="h-5 w-5" />
+                                </button>
                             </div>
+
                         </div>
                     </div>
                 );
@@ -181,6 +202,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
       {/* --- Desktop View: Table (Visible only on md+ screens) --- */}
       <div className="hidden md:block flex-1 overflow-auto custom-scrollbar">
         <table className="w-full text-left border-collapse">
+          {/* Sticky Header */}
           <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-30 shadow-sm">
             <tr>
               <th className={`${headerPadding} w-12 text-center sticky left-0 bg-gray-50 z-20`}>
