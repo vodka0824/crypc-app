@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useProducts } from '../contexts/ProductContext';
 import { Category, Product, ProductSpecs } from '../types';
-import { Upload, Database, Plus, Search, X, DollarSign, Loader2, Package, FileText } from 'lucide-react';
+import { Upload, Database, Plus, Search, X, DollarSign, Loader2, Package, FileText, Settings } from 'lucide-react';
 
 import AdminHeader from '../components/admin/AdminHeader';
 import FilterControls from '../components/admin/FilterControls';
@@ -336,27 +336,35 @@ const Admin: React.FC = () => {
       {/* 1. Header & Tab Navigation */}
       <div className="flex-shrink-0 pt-4 md:pt-6 bg-[#F5F5F7] z-30">
         <div className="max-w-[1280px] mx-auto px-4 md:px-8 w-full">
-            <AdminHeader isLoading={isLoading} />
+            {/* Collapsible Header for Mobile */}
+            <div className="hidden md:block">
+               <AdminHeader isLoading={isLoading} />
+            </div>
+            {/* Simplified Header for Mobile */}
+            <div className="md:hidden flex items-center justify-between mb-4">
+               <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  後台管理
+                  {isLoading && <Loader2 className="h-4 w-4 animate-spin text-gray-400" />}
+               </h1>
+            </div>
             
-            {/* Tabs */}
-            <div className="flex gap-4 border-b border-gray-200 mb-4 overflow-x-auto hide-scrollbar">
+            {/* Modern Segmented Control Tabs */}
+            <div className="bg-gray-200/80 p-1 rounded-xl flex gap-1 mb-4">
               <button 
                 onClick={() => setActiveTab('products')}
-                className={`pb-3 px-1 text-sm font-bold flex items-center gap-2 transition-all relative whitespace-nowrap ${
-                  activeTab === 'products' ? 'text-black' : 'text-gray-400 hover:text-gray-600'
+                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${
+                  activeTab === 'products' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
                 <Package className="h-4 w-4" /> 商品管理
-                {activeTab === 'products' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-black rounded-full" />}
               </button>
               <button 
                 onClick={() => setActiveTab('quotation')}
-                className={`pb-3 px-1 text-sm font-bold flex items-center gap-2 transition-all relative whitespace-nowrap ${
-                  activeTab === 'quotation' ? 'text-black' : 'text-gray-400 hover:text-gray-600'
+                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${
+                  activeTab === 'quotation' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                <FileText className="h-4 w-4" /> 報價單設定
-                {activeTab === 'quotation' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-black rounded-full" />}
+                <Settings className="h-4 w-4" /> 報價單設定
               </button>
             </div>
         </div>
@@ -364,7 +372,7 @@ const Admin: React.FC = () => {
 
       {/* 2. Content Area */}
       <div className="flex-1 min-h-0 w-full overflow-hidden">
-        <div className="h-full max-w-[1280px] mx-auto px-2 md:px-8 pb-0 md:pb-4">
+        <div className="h-full max-w-[1280px] mx-auto px-2 md:px-8 pb-0 md:pb-4 relative">
             
             {/* -- Tab: Products -- */}
             {activeTab === 'products' && (
@@ -399,7 +407,7 @@ const Admin: React.FC = () => {
                       <button onClick={handleResetDb} className={`${buttonBaseClass} ${buttonSecondaryClass} whitespace-nowrap`} title="重置為預設資料">
                           <Database className="h-4 w-4" /> <span className="">初始化</span>
                       </button>
-                      <button onClick={handleAddNew} className={`${buttonBaseClass} ${buttonPrimaryClass} whitespace-nowrap`}>
+                      <button onClick={handleAddNew} className="hidden md:flex h-11 px-5 rounded-xl font-bold items-center gap-2 transition-all active:scale-95 shadow-md bg-black border border-black text-white hover:bg-gray-800 whitespace-nowrap">
                           <Plus className="h-4 w-4" /> <span className="">新增</span>
                       </button>
                   </div>
@@ -428,12 +436,20 @@ const Admin: React.FC = () => {
                     onDelete={handleDelete}
                   />
                 </div>
+
+                {/* FAB for Mobile */}
+                <button 
+                  onClick={handleAddNew}
+                  className="md:hidden absolute bottom-6 right-4 w-14 h-14 bg-black text-white rounded-full shadow-2xl flex items-center justify-center z-40 active:scale-90 transition-transform"
+                >
+                  <Plus className="h-7 w-7" />
+                </button>
               </div>
             )}
 
             {/* -- Tab: Quotation Settings -- */}
             {activeTab === 'quotation' && (
-              <div className="h-full overflow-y-auto custom-scrollbar pb-20 px-2">
+              <div className="h-full overflow-y-auto custom-scrollbar pb-20 px-1">
                  <QuotationSettingsForm />
               </div>
             )}
